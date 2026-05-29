@@ -7,7 +7,7 @@ export const config = {
 
   // GitHub
   github: {
-    repoUrl: "https://github.com/anomalyco/opencode",
+    repoUrl: "https://github.com/herb711/openredou",
     starsFormatted: {
       compact: "160K",
       full: "160,000",

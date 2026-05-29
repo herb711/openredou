@@ -58,12 +58,19 @@ function testLayer(
 
 describe("installation", () => {
   describe("latest", () => {
-    testEffect(testLayer(() => jsonResponse({ tag_name: "v1.2.3" }))).effect(
-      "reads release version from GitHub releases",
+    const githubCalls: string[] = []
+    testEffect(
+      testLayer((request) => {
+        githubCalls.push(request.url)
+        return jsonResponse({ tag_name: "v1.2.3" })
+      }),
+    ).effect(
+      "reads release version from OpenRedou GitHub releases",
       () =>
         Effect.gen(function* () {
           const result = yield* Installation.use.latest("unknown")
           expect(result).toBe("1.2.3")
+          expect(githubCalls).toContain("https://api.github.com/repos/herb711/openredou/releases/latest")
         }),
     )
 
@@ -191,9 +198,13 @@ describe("installation", () => {
       }),
     )
 
+    const curlCalls: string[] = []
     testEffect(
       testLayer(
-        () => new Response("install script with token=secret", { status: 200 }),
+        (request) => {
+          curlCalls.push(request.url)
+          return new Response("install script with token=secret", { status: 200 })
+        },
         (cmd) => {
           if (cmd === "bash") return { code: 1, stderr: "script output with token=secret" }
           return ""
@@ -207,6 +218,7 @@ describe("installation", () => {
         expect(error.message).toBe(error.stderr)
         expect(error.stderr).not.toContain("secret")
         expect(error.stderr).not.toContain("script output")
+        expect(curlCalls).toContain("https://raw.githubusercontent.com/herb711/openredou/dev/install")
       }),
     )
   })

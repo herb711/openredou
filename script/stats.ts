@@ -39,6 +39,8 @@ interface Release {
   assets: Asset[]
 }
 
+const repo = process.env.GH_REPO ?? "herb711/openredou"
+
 interface NpmDownloadsRange {
   start: string
   end: string
@@ -73,7 +75,7 @@ async function fetchReleases(): Promise<Release[]> {
   const per = 100
 
   while (true) {
-    const url = `https://api.github.com/repos/anomalyco/opencode/releases?page=${page}&per_page=${per}`
+    const url = `https://api.github.com/repos/${repo}/releases?page=${page}&per_page=${per}`
 
     const response = await fetch(url)
     if (!response.ok) {
@@ -188,7 +190,7 @@ async function save(githubTotal: number, npmDownloads: number) {
   )
 }
 
-console.log("Fetching GitHub releases for anomalyco/opencode...\n")
+console.log(`Fetching GitHub releases for ${repo}...\n`)
 
 const releases = await fetchReleases()
 console.log(`\nFetched ${releases.length} releases total\n`)
