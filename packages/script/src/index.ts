@@ -29,7 +29,7 @@ const CHANNEL = await (async () => {
   if (env.OPENCODE_VERSION && !env.OPENCODE_VERSION.startsWith("0.0.0-")) return "latest"
   return await $`git branch --show-current`.text().then((x) => x.trim())
 })()
-const IS_PREVIEW = CHANNEL !== "latest"
+const IS_PREVIEW = CHANNEL !== "latest" && CHANNEL !== "prod"
 
 const VERSION = await (async () => {
   if (env.OPENCODE_VERSION) return env.OPENCODE_VERSION
