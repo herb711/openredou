@@ -43,15 +43,15 @@ const getBase = (): Configuration => ({
   mac: {
     category: "public.app-category.developer-tools",
     icon: `resources/icons/icon.icns`,
-    hardenedRuntime: true,
+    hardenedRuntime: false,
     gatekeeperAssess: false,
     entitlements: "resources/entitlements.plist",
     entitlementsInherit: "resources/entitlements.plist",
-    notarize: true,
+    notarize: false,
     target: ["dmg", "zip"],
   },
   dmg: {
-    sign: true,
+    sign: false,
   },
   protocols: {
     name: "OpenCode",
@@ -59,11 +59,7 @@ const getBase = (): Configuration => ({
   },
   win: {
     icon: `resources/icons/icon.ico`,
-    signtoolOptions: {
-      sign: signWindows,
-    },
     target: ["nsis"],
-    verifyUpdateCodeSignature: false,
   },
   nsis: {
     oneClick: true,
