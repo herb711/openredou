@@ -11,6 +11,8 @@ node_modules
 playground
 tmp
 dist
+out
+.vite
 ts-dist
 .turbo
 **/.serena
@@ -28,5 +30,11 @@ target
 opencode-dev
 UPCOMING_CHANGELOG.md
 logs/
+*.log
 *.bun-build
-tsconfig.tsbuildinfo
+*.tsbuildinfo
+electron-builder-debug.yml
+
+# Desktop dev generated files
+packages/desktop/resources/icons/
+packages/desktop/resources/*.metainfo.xml

@@ -22,7 +22,6 @@ import { debounce } from "@solid-primitives/scheduled"
 import { useLocal } from "@/context/local"
 import { selectionFromLines, useFile, type FileSelection, type SelectedLineRange } from "@/context/file"
 import { createStore } from "solid-js/store"
-import { ResizeHandle } from "@opencode-ai/ui/resize-handle"
 import { Select } from "@opencode-ai/ui/select"
 import { Tabs } from "@opencode-ai/ui/tabs"
 import { createAutoScroll } from "@opencode-ai/ui/hooks"
@@ -1807,20 +1806,6 @@ export default function Page() {
 
           <Show when={params.id || !newSessionDesign()}>{composerRegion("dock")}</Show>
 
-          <Show when={desktopReviewOpen()}>
-            <div onPointerDown={() => size.start()}>
-              <ResizeHandle
-                direction="horizontal"
-                size={layout.session.width()}
-                min={450}
-                max={typeof window === "undefined" ? 1000 : window.innerWidth * 0.45}
-                onResize={(width) => {
-                  size.touch()
-                  layout.session.resize(width)
-                }}
-              />
-            </div>
-          </Show>
         </div>
 
         <SessionSidePanel

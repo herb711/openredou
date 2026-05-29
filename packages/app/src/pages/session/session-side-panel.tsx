@@ -4,7 +4,6 @@ import { createMediaQuery } from "@solid-primitives/media"
 import { Tabs } from "@opencode-ai/ui/tabs"
 import { IconButton } from "@opencode-ai/ui/icon-button"
 import { TooltipKeybind } from "@opencode-ai/ui/tooltip"
-import { ResizeHandle } from "@opencode-ai/ui/resize-handle"
 import { Mark } from "@opencode-ai/ui/logo"
 import { DragDropProvider, DragDropSensors, DragOverlay, SortableProvider, closestCenter } from "@thisbeyond/solid-dnd"
 import type { DragEvent } from "@thisbeyond/solid-dnd"
@@ -19,7 +18,6 @@ import { useCommand } from "@/context/command"
 import { useFile, type SelectedLineRange } from "@/context/file"
 import { useLanguage } from "@/context/language"
 import { useLayout } from "@/context/layout"
-import { usePlatform } from "@/context/platform"
 import { useSettings } from "@/context/settings"
 import { useSync } from "@/context/sync"
 import { createFileTabListSync } from "@/pages/session/file-tab-scroll"
@@ -48,7 +46,6 @@ export function SessionSidePanel(props: {
   size: Sizing
 }) {
   const layout = useLayout()
-  const platform = usePlatform()
   const settings = useSettings()
   const sync = useSync()
   const file = useFile()
@@ -58,8 +55,7 @@ export function SessionSidePanel(props: {
   const { sessionKey, tabs, view, params } = useSessionLayout()
 
   const isDesktop = createMediaQuery("(min-width: 768px)")
-  const desktopV2 = () => platform.platform === "desktop" && settings.general.newLayoutDesigns()
-  const shown = createMemo(() => (desktopV2() ? settings.general.showFileTree() : true))
+  const shown = createMemo(() => true)
 
   const reviewOpen = createMemo(() => isDesktop() && view().reviewPanel.opened())
   const fileOpen = createMemo(() => isDesktop() && shown() && layout.fileTree.opened())
@@ -433,21 +429,6 @@ export function SessionSidePanel(props: {
                     </Tabs.Content>
                   </Tabs>
                 </div>
-                <Show when={fileOpen()}>
-                  <div onPointerDown={() => props.size.start()}>
-                    <ResizeHandle
-                      direction="horizontal"
-                      edge="start"
-                      size={layout.fileTree.width()}
-                      min={200}
-                      max={480}
-                      onResize={(width) => {
-                        props.size.touch()
-                        layout.fileTree.resize(width)
-                      }}
-                    />
-                  </div>
-                </Show>
               </div>
             </Show>
           </div>

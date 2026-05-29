@@ -61,7 +61,6 @@ import { useDialog } from "@opencode-ai/ui/context/dialog"
 import { useTheme, type ColorScheme } from "@opencode-ai/ui/theme/context"
 import { useCommand, type CommandOption } from "@/context/command"
 import { ConstrainDragXAxis, getDraggableId } from "@/utils/solid-dnd"
-import { DebugBar } from "@/components/debug-bar"
 import { Titlebar, type TitlebarUpdate } from "@/components/titlebar"
 import { useServer } from "@/context/server"
 import { useLanguage, type Locale } from "@/context/language"
@@ -2379,7 +2378,6 @@ export default function Layout(props: ParentProps) {
               {props.children}
             </Show>
           </main>
-          {import.meta.env.DEV && <DebugBar />}
           <Toast.Region />
         </div>
       }
@@ -2531,7 +2529,6 @@ export default function Layout(props: ParentProps) {
               </div>
             </div>
           </div>
-          {import.meta.env.DEV && <DebugBar />}
         </div>
         <Toast.Region />
       </div>
