@@ -296,4 +296,5 @@ jobs:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           GH_REPO: ${{ needs.version.outputs.repo }}
           NPM_CONFIG_PROVENANCE: false
+          OPENCODE_SKIP_EXTERNAL_PUBLISH: true
           LATEST_YML_DIR: /tmp/latest-yml
