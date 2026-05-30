@@ -10,6 +10,7 @@ const dir = fileURLToPath(new URL("..", import.meta.url))
 process.chdir(dir)
 const tag = `v${Script.version}`
 const skipExternalPublish = /^(1|true|yes)$/i.test(process.env.OPENCODE_SKIP_EXTERNAL_PUBLISH ?? "")
+const skipLatestJson = /^(1|true|yes)$/i.test(process.env.OPENCODE_SKIP_LATEST_JSON ?? "")
 
 const pkgjsons = await Array.fromAsync(
   new Bun.Glob("**/package.json").scan({
@@ -58,7 +59,12 @@ if (skipExternalPublish) {
 }
 
 if (Script.release) {
-  await $`bun ./packages/desktop/scripts/finalize-latest-json.ts`
+  if (skipLatestJson) {
+    console.log("\n=== latest.json ===\n")
+    console.log("skipped because OPENCODE_SKIP_LATEST_JSON is set")
+  } else {
+    await $`bun ./packages/desktop/scripts/finalize-latest-json.ts`
+  }
   await $`bun ./packages/desktop/scripts/finalize-latest-yml.ts`
 }
 

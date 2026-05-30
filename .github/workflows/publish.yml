@@ -297,4 +297,5 @@ jobs:
           GH_REPO: ${{ needs.version.outputs.repo }}
           NPM_CONFIG_PROVENANCE: false
           OPENCODE_SKIP_EXTERNAL_PUBLISH: true
+          OPENCODE_SKIP_LATEST_JSON: true
           LATEST_YML_DIR: /tmp/latest-yml
