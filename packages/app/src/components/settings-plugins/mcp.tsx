@@ -19,6 +19,16 @@ import { FormRow, readPairs, writePairs } from "./common"
 
 type McpConfig = NonNullable<Config["mcp"]>[string]
 type McpType = "local" | "remote"
+type McpProbeResult = {
+  status: McpStatus
+  tools: Array<{ name: string; description?: string }>
+  smoke?: {
+    ok: boolean
+    tool: string
+    error?: string
+    outputPreview?: string
+  }
+}
 
 const MCP_TYPE_OPTIONS: Array<{ value: McpType; label: string }> = [
   { value: "local", label: "Local" },
@@ -49,7 +59,15 @@ export const SettingsMcpPanel: Component<{ directory: string }> = (props) => {
   const [state, setState] = createStore({
     savingMcp: false,
     togglingMcp: "",
+    importingMcp: false,
   })
+  const [importState, setImportState] = createStore({
+    text: "",
+    error: "",
+  })
+  const [probeState, setProbeState] = createStore<
+    Record<string, { loading: boolean; result?: McpProbeResult; error?: string }>
+  >({})
   const [mcpForm, setMcpForm] = createStore({
     editing: "",
     name: "",
@@ -61,6 +79,7 @@ export const SettingsMcpPanel: Component<{ directory: string }> = (props) => {
     environment: "",
     headers: "",
     oauth: true,
+    minimaxApiKey: "",
   })
 
   const resetMcpForm = () => {
@@ -75,6 +94,7 @@ export const SettingsMcpPanel: Component<{ directory: string }> = (props) => {
       environment: "",
       headers: "",
       oauth: true,
+      minimaxApiKey: "",
     })
   }
 
@@ -134,17 +154,20 @@ export const SettingsMcpPanel: Component<{ directory: string }> = (props) => {
   }
 
   const localMcpConfig = (timeout: number | undefined): McpLocalConfig | undefined => {
-    const command = mcpForm.command.trim().split(/\s+/).filter(Boolean)
+    const command = parseCommandLine(mcpForm.command)
     if (command.length === 0) {
       showToast({ title: language.t("settings.mcp.validation.command") })
       return
     }
-    const environment = readPairs(mcpForm.environment)
+    const environment = { ...(readPairs(mcpForm.environment) ?? {}) }
+    delete environment.MINIMAX_API_KEY
+    const minimaxApiKey = mcpForm.minimaxApiKey.trim()
+    if (minimaxApiKey) environment.MINIMAX_API_KEY = minimaxApiKey
     return {
       type: "local",
       command,
       enabled: mcpForm.enabled,
-      ...(environment ? { environment } : {}),
+      ...(Object.keys(environment).length > 0 ? { environment } : {}),
       ...(timeout ? { timeout } : {}),
     }
   }
@@ -211,19 +234,86 @@ export const SettingsMcpPanel: Component<{ directory: string }> = (props) => {
       .finally(() => setState("togglingMcp", ""))
   }
 
+  const runMcpProbe = async (name: string, smoke: boolean) => {
+    const directory = props.directory
+    if (!directory) return
+    const client = serverSDK.createClient({ directory, throwOnError: true })
+    setProbeState(name, { loading: true })
+    await client.mcp
+      .probe({ name, smoke })
+      .then((res) => {
+        setProbeState(name, { loading: false, result: res.data as McpProbeResult })
+      })
+      .catch((err: unknown) => {
+        setProbeState(name, {
+          loading: false,
+          error: err instanceof Error ? err.message : String(err),
+        })
+        showToast({
+          variant: "error",
+          title: language.t("settings.mcp.test.toast.failed.title"),
+          description: err instanceof Error ? err.message : String(err),
+        })
+      })
+  }
+
+  const importMcpConfig = () => {
+    setState("importingMcp", true)
+    try {
+      const imported = parseMcpImport(importState.text)
+      const existing = mcpConfig()[imported.name]
+      const env = isLocalMcp(imported.config) ? { ...(imported.config.environment ?? {}) } : undefined
+      const minimaxApiKey = typeof env?.MINIMAX_API_KEY === "string" ? env.MINIMAX_API_KEY : ""
+      if (env) delete env.MINIMAX_API_KEY
+      setMcpForm({
+        editing: existing ? imported.name : "",
+        name: imported.name,
+        type: imported.config.type,
+        command: isLocalMcp(imported.config) ? formatCommandLine(imported.config.command) : "",
+        url: isRemoteMcp(imported.config) ? imported.config.url : "",
+        enabled: imported.config.enabled ?? true,
+        timeout: imported.config.timeout ? String(imported.config.timeout) : "",
+        environment: env ? writePairs(env) : "",
+        headers: isRemoteMcp(imported.config) ? writePairs(imported.config.headers) : "",
+        oauth: isRemoteMcp(imported.config) ? imported.config.oauth !== false : true,
+        minimaxApiKey,
+      })
+      setImportState("error", "")
+      showToast({
+        variant: "success",
+        icon: "circle-check",
+        title: language.t("settings.mcp.import.toast.success.title"),
+      })
+    } catch (err) {
+      const message = err instanceof Error ? err.message : String(err)
+      setImportState("error", message)
+      showToast({
+        variant: "error",
+        title: language.t("settings.mcp.import.toast.failed.title"),
+        description: message,
+      })
+    } finally {
+      setState("importingMcp", false)
+    }
+  }
+
   const editMcp = (name: string, config: McpConfig) => {
     if (!isLocalMcp(config) && !isRemoteMcp(config)) return
+    const environment = isLocalMcp(config) ? { ...(config.environment ?? {}) } : undefined
+    const minimaxApiKey = typeof environment?.MINIMAX_API_KEY === "string" ? environment.MINIMAX_API_KEY : ""
+    if (environment) delete environment.MINIMAX_API_KEY
     setMcpForm({
       editing: name,
       name,
       type: config.type,
-      command: isLocalMcp(config) ? config.command.join(" ") : "",
+      command: isLocalMcp(config) ? formatCommandLine(config.command) : "",
       url: isRemoteMcp(config) ? config.url : "",
       enabled: config.enabled ?? true,
       timeout: config.timeout ? String(config.timeout) : "",
-      environment: isLocalMcp(config) ? writePairs(config.environment) : "",
+      environment: environment ? writePairs(environment) : "",
       headers: isRemoteMcp(config) ? writePairs(config.headers) : "",
       oauth: isRemoteMcp(config) ? config.oauth !== false : true,
+      minimaxApiKey,
     })
   }
 
@@ -295,6 +385,113 @@ export const SettingsMcpPanel: Component<{ directory: string }> = (props) => {
                         disabled={state.savingMcp}
                         onClick={() => removeMcp(item.name)}
                       />
+                    </div>
+                  </div>
+                )
+              }}
+            </For>
+          </Show>
+        </SettingsList>
+      </div>
+
+      <div class="flex flex-col gap-1">
+        <h3 class="text-14-medium text-text-strong pb-2">{language.t("settings.mcp.import.title")}</h3>
+        <SettingsList>
+          <FormRow
+            title={language.t("settings.mcp.import.paste")}
+            description={language.t("settings.mcp.import.paste.description")}
+          >
+            <TextField
+              label={language.t("settings.mcp.import.paste")}
+              hideLabel
+              multiline
+              value={importState.text}
+              onChange={(value) => setImportState("text", value)}
+              placeholder={language.t("settings.mcp.import.placeholder")}
+              spellcheck={false}
+              autocorrect="off"
+              autocomplete="off"
+              autocapitalize="off"
+              class="text-12-regular min-h-32 w-full sm:w-[520px]"
+            />
+          </FormRow>
+          <Show when={importState.error}>
+            {(error) => <div class="px-0 py-2 text-12-regular text-text-danger-base">{error()}</div>}
+          </Show>
+          <div class="flex justify-end gap-2 py-3">
+            <Button
+              size="small"
+              variant="primary"
+              icon="plus-small"
+              disabled={state.importingMcp || !importState.text.trim()}
+              onClick={importMcpConfig}
+            >
+              {language.t("settings.mcp.import.action")}
+            </Button>
+          </div>
+        </SettingsList>
+      </div>
+
+      <div class="flex flex-col gap-1">
+        <h3 class="text-14-medium text-text-strong pb-2">{language.t("settings.mcp.test.title")}</h3>
+        <SettingsList>
+          <Show
+            when={mcpItems().length > 0}
+            fallback={<div class="py-4 text-14-regular text-text-weak">{language.t("dialog.mcp.empty")}</div>}
+          >
+            <For each={mcpItems()}>
+              {(item) => {
+                const probe = () => probeState[item.name]
+                const result = () => probe()?.result
+                const smoke = () => result()?.smoke
+                return (
+                  <div class="flex flex-wrap items-center justify-between gap-4 py-3 border-b border-border-weak-base last:border-none">
+                    <div class="flex min-w-0 flex-col gap-1">
+                      <div class="flex items-center gap-2 min-w-0">
+                        <Icon name="mcp" class="text-icon-weak-base shrink-0" />
+                        <span class="text-14-regular text-text-strong truncate">{item.name}</span>
+                        <Tag>{mcpConfigKind(item.config)}</Tag>
+                        <Show when={result()}>
+                          {(value) => <span class="text-11-regular text-text-weaker">{language.t(statusLabels[value().status.status])}</span>}
+                        </Show>
+                      </div>
+                      <span class="text-12-regular text-text-weak truncate">
+                        {result()
+                          ? language.t("settings.mcp.test.tools", { count: String(result()!.tools.length) })
+                          : language.t("settings.mcp.test.idle")}
+                      </span>
+                      <Show when={smoke()}>
+                        {(value) => (
+                          <span class="text-11-regular text-text-weaker truncate">
+                            {value().ok
+                              ? language.t("settings.mcp.test.smoke.ok")
+                              : language.t("settings.mcp.test.smoke.failed", { error: value().error ?? "" })}
+                          </span>
+                        )}
+                      </Show>
+                      <Show when={probe()?.error}>
+                        {(error) => <span class="text-11-regular text-text-danger-base truncate">{error()}</span>}
+                      </Show>
+                    </div>
+                    <div class="flex flex-wrap items-center justify-end gap-2">
+                      <Button
+                        size="small"
+                        variant="secondary"
+                        icon="check"
+                        disabled={!props.directory || probe()?.loading}
+                        onClick={() => void runMcpProbe(item.name, false)}
+                      >
+                        {language.t("settings.mcp.test.connection")}
+                      </Button>
+                      <Button
+                        size="small"
+                        variant="secondary"
+                        icon="check"
+                        disabled={!props.directory || probe()?.loading}
+                        onClick={() => void runMcpProbe(item.name, true)}
+                      >
+                        {language.t("settings.mcp.test.smoke")}
+                      </Button>
                     </div>
                   </div>
                 )
@@ -445,6 +642,24 @@ export const SettingsMcpPanel: Component<{ directory: string }> = (props) => {
                 class="text-12-regular min-h-20 w-full sm:w-[320px]"
               />
             </FormRow>
+            <FormRow
+              title={language.t("settings.mcp.form.minimaxApiKey")}
+              description={language.t("settings.mcp.form.minimaxApiKey.description")}
+            >
+              <TextField
+                label={language.t("settings.mcp.form.minimaxApiKey")}
+                hideLabel
+                type="password"
+                value={mcpForm.minimaxApiKey}
+                onChange={(value) => setMcpForm("minimaxApiKey", value)}
+                placeholder={language.t("settings.mcp.form.minimaxApiKey.placeholder")}
+                spellcheck={false}
+                autocorrect="off"
+                autocomplete="off"
+                autocapitalize="off"
+                class="text-12-regular w-full sm:w-[320px]"
+              />
+            </FormRow>
           </Show>
           <FormRow
             title={language.t("settings.mcp.form.enabled")}
@@ -492,4 +707,135 @@ function mcpStatusError(status: McpStatus | undefined) {
   if (!status) return
   if (status.status === "failed" || status.status === "needs_client_registration") return status.error
   return
+}
+
+function parseMcpImport(value: string): { name: string; config: McpLocalConfig | McpRemoteConfig } {
+  const parsed = parseJsonLike(value)
+  const entries = extractMcpEntries(parsed)
+  if (entries.length === 0) throw new Error("No MCP server config was found.")
+
+  const preferred = entries.find(([name]) => /minimax/i.test(name)) ?? entries[0]
+  const [name, rawConfig] = preferred
+  const config = normalizeMcpConfig(rawConfig)
+  if (!config) throw new Error("The pasted MCP config is not a supported local or remote server.")
+  return { name: sanitizeMcpName(name), config }
+}
+
+function parseJsonLike(value: string): unknown {
+  const trimmed = value
+    .trim()
+    .replace(/^```(?:json|javascript|js)?/i, "")
+    .replace(/```$/i, "")
+    .trim()
+
+  const candidates = [trimmed]
+  const first = trimmed.indexOf("{")
+  const last = trimmed.lastIndexOf("}")
+  if (first !== -1 && last > first) candidates.push(trimmed.slice(first, last + 1))
+  if (!trimmed.startsWith("{")) candidates.push(`{${trimmed}}`)
+
+  for (const candidate of candidates) {
+    try {
+      return JSON.parse(candidate)
+    } catch {}
+  }
+  throw new Error("Paste valid JSON from MiniMax --agent-config or an OpenCode MCP config.")
+}
+
+function extractMcpEntries(value: unknown): Array<[string, unknown]> {
+  if (!isRecord(value)) return []
+  for (const key of ["mcp", "mcpServers", "mcp_servers"]) {
+    const container = value[key]
+    if (isRecord(container)) return Object.entries(container)
+  }
+  if (isRecord(value.transport)) return [["minimax-bridge", value.transport]]
+  if ("type" in value || "command" in value || "url" in value) return [["minimax-bridge", value]]
+  const objectEntries = Object.entries(value).filter(([, item]) => isRecord(item))
+  return objectEntries.length === 1 ? objectEntries : []
+}
+
+function normalizeMcpConfig(value: unknown): McpLocalConfig | McpRemoteConfig | undefined {
+  if (!isRecord(value)) return
+  const type = typeof value.type === "string" ? value.type : undefined
+  if (type === "remote" || typeof value.url === "string") {
+    const url = typeof value.url === "string" ? value.url.trim() : ""
+    if (!url) return
+    const headers = normalizeStringRecord(value.headers)
+    return {
+      type: "remote",
+      url,
+      enabled: typeof value.enabled === "boolean" ? value.enabled : true,
+      ...(headers ? { headers } : {}),
+      ...(value.oauth === false ? { oauth: false as const } : {}),
+      ...(typeof value.timeout === "number" ? { timeout: value.timeout } : {}),
+    }
+  }
+
+  const command = normalizeCommand(value)
+  if (command.length === 0) return
+  const environment = normalizeStringRecord(value.environment ?? value.env)
+  return {
+    type: "local",
+    command,
+    enabled: typeof value.enabled === "boolean" ? value.enabled : true,
+    ...(environment ? { environment } : {}),
+    ...(typeof value.timeout === "number" ? { timeout: value.timeout } : {}),
+  }
+}
+
+function normalizeCommand(value: Record<string, unknown>): string[] {
+  const command = value.command
+  const args = Array.isArray(value.args) ? value.args.filter((item): item is string => typeof item === "string") : []
+  if (Array.isArray(command)) return command.filter((item): item is string => typeof item === "string")
+  if (typeof command === "string") return args.length > 0 ? [command, ...args] : parseCommandLine(command)
+  return args
+}
+
+function normalizeStringRecord(value: unknown): Record<string, string> | undefined {
+  if (!isRecord(value)) return
+  const entries = Object.entries(value)
+    .filter(([, item]) => item !== undefined && item !== null)
+    .map(([key, item]) => [key, typeof item === "string" ? item : JSON.stringify(item)] as const)
+  if (entries.length === 0) return
+  return Object.fromEntries(entries)
+}
+
+function parseCommandLine(value: string) {
+  const result: string[] = []
+  let current = ""
+  let quote: '"' | "'" | "" = ""
+  for (let index = 0; index < value.length; index++) {
+    const char = value[index]
+    if ((char === '"' || char === "'") && !quote) {
+      quote = char
+      continue
+    }
+    if (quote && char === quote) {
+      quote = ""
+      continue
+    }
+    if (!quote && /\s/.test(char)) {
+      if (current) {
+        result.push(current)
+        current = ""
+      }
+      continue
+    }
+    current += char
+  }
+  if (current) result.push(current)
+  return result
+}
+
+function formatCommandLine(command: string[]) {
+  return command.map((item) => (/\s/.test(item) ? JSON.stringify(item) : item)).join(" ")
+}
+
+function sanitizeMcpName(name: string) {
+  const trimmed = name.trim()
+  return trimmed || "minimax-bridge"
+}
+
+function isRecord(value: unknown): value is Record<string, unknown> {
+  return typeof value === "object" && value !== null && !Array.isArray(value)
 }

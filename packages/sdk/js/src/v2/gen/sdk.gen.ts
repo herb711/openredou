@@ -99,6 +99,8 @@ import type {
   McpDisconnectErrors,
   McpDisconnectResponses,
   McpLocalConfig,
+  McpProbeErrors,
+  McpProbeResponses,
   McpRemoteConfig,
   McpStatusErrors,
   McpStatusResponses,
@@ -2222,6 +2224,45 @@ export class Mcp extends HeyApiClient {
       url: "/mcp/{name}/disconnect",
       ...options,
       ...params,
+    })
+  }
+
+  /**
+   * Probe MCP server
+   *
+   * Connect to an MCP server, list tools, and optionally run a low-cost smoke test.
+   */
+  public probe<ThrowOnError extends boolean = false>(
+    parameters: {
+      name: string
+      directory?: string
+      workspace?: string
+      smoke?: boolean
+    },
+    options?: Options<never, ThrowOnError>,
+  ) {
+    const params = buildClientParams(
+      [parameters],
+      [
+        {
+          args: [
+            { in: "path", key: "name" },
+            { in: "query", key: "directory" },
+            { in: "query", key: "workspace" },
+            { in: "body", key: "smoke" },
+          ],
+        },
+      ],
+    )
+    return (options?.client ?? this.client).post<McpProbeResponses, McpProbeErrors, ThrowOnError>({
+      url: "/mcp/{name}/probe",
+      ...options,
+      ...params,
+      headers: {
+        "Content-Type": "application/json",
+        ...options?.headers,
+        ...params.headers,
+      },
     })
   }
 

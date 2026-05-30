@@ -99,6 +99,17 @@ export const Status = Schema.Union([
 ]).annotate({ identifier: "MCPStatus", discriminator: "status" })
 export type Status = Schema.Schema.Type<typeof Status>
 
+export interface ProbeResult {
+  status: Status
+  tools: Array<{ name: string; description?: string }>
+  smoke?: {
+    ok: boolean
+    tool: string
+    error?: string
+    outputPreview?: string
+  }
+}
+
 // Store transports for OAuth servers to allow finishing auth
 type TransportWithAuth = StreamableHTTPClientTransport | SSEClientTransport
 const pendingOAuthTransports = new Map<string, TransportWithAuth>()
@@ -247,6 +258,7 @@ export interface Interface {
   readonly prompts: () => Effect.Effect<Record<string, PromptInfo & { client: string }>>
   readonly resources: () => Effect.Effect<Record<string, ResourceInfo & { client: string }>>
   readonly add: (name: string, mcp: ConfigMCP.Info) => Effect.Effect<{ status: Record<string, Status> | Status }>
+  readonly probe: (name: string, options?: { smoke?: boolean }) => Effect.Effect<ProbeResult, NotFoundError>
   readonly connect: (name: string) => Effect.Effect<void, NotFoundError>
   readonly disconnect: (name: string) => Effect.Effect<void, NotFoundError>
   readonly getPrompt: (
@@ -654,6 +666,79 @@ export const layer = Layer.effect(
       return { status: s.status }
     })
 
+    const summarizeCallToolResult = (value: unknown) => {
+      try {
+        return JSON.stringify(value).slice(0, 500)
+      } catch {
+        return String(value).slice(0, 500)
+      }
+    }
+
+    const probe = Effect.fn("MCP.probe")(function* (name: string, options?: { smoke?: boolean }) {
+      const mcpConfig = yield* requireMcpConfig(name)
+      const s = yield* InstanceState.get(state)
+
+      if (s.status[name]?.status !== "connected") {
+        yield* createAndStore(name, { ...mcpConfig, enabled: true })
+      }
+
+      const status = s.status[name] ?? ({ status: "disabled" } as Status)
+      const toolDefs = s.defs[name] ?? []
+      const result: ProbeResult = {
+        status,
+        tools: toolDefs.map((tool) => ({
+          name: tool.name,
+          ...(tool.description ? { description: tool.description } : {}),
+        })),
+      }
+
+      if (!options?.smoke) return result
+
+      const client = s.clients[name]
+      const tool = "list_voices"
+      if (status.status !== "connected" || !client) {
+        result.smoke = { ok: false, tool, error: "MCP server is not connected." }
+        return result
+      }
+      if (!toolDefs.some((item) => item.name === tool)) {
+        result.smoke = { ok: false, tool, error: "list_voices tool was not found." }
+        return result
+      }
+
+      const callResult = yield* Effect.tryPromise({
+        try: () =>
+          client.callTool(
+            {
+              name: tool,
+              arguments: {},
+            },
+            CallToolResultSchema,
+            {
+              resetTimeoutOnProgress: true,
+              timeout: mcpConfig.timeout ?? DEFAULT_TIMEOUT,
+            },
+          ),
+        catch: (error) => error,
+      }).pipe(
+        Effect.map((value) => ({ ok: true as const, value })),
+        Effect.catch((error) => Effect.succeed({ ok: false as const, error })),
+      )
+
+      if (!callResult.ok) {
+        const error = callResult.error instanceof Error ? callResult.error.message : String(callResult.error)
+        result.smoke = { ok: false, tool, error }
+        return result
+      }
+
+      if (callResult.value.isError) {
+        result.smoke = { ok: false, tool, error: summarizeCallToolResult(callResult.value.content) }
+        return result
+      }
+
+      result.smoke = { ok: true, tool, outputPreview: summarizeCallToolResult(callResult.value.content) }
+      return result
+    })
+
     const connect = Effect.fn("MCP.connect")(function* (name: string) {
       const mcp = yield* requireMcpConfig(name)
       yield* createAndStore(name, { ...mcp, enabled: true })
@@ -951,6 +1036,7 @@ export const layer = Layer.effect(
       prompts,
       resources,
       add,
+      probe,
       connect,
       disconnect,
       getPrompt,

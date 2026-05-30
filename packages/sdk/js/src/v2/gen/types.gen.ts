@@ -5343,6 +5343,54 @@ export type McpDisconnectResponses = {
 
 export type McpDisconnectResponse = McpDisconnectResponses[keyof McpDisconnectResponses]
 
+export type McpProbeData = {
+  body?: {
+    smoke?: boolean
+  }
+  path: {
+    name: string
+  }
+  query?: {
+    directory?: string
+    workspace?: string
+  }
+  url: "/mcp/{name}/probe"
+}
+
+export type McpProbeErrors = {
+  /**
+   * Bad request
+   */
+  400: BadRequestError
+  /**
+   * McpServerNotFoundError
+   */
+  404: McpServerNotFoundError
+}
+
+export type McpProbeError = McpProbeErrors[keyof McpProbeErrors]
+
+export type McpProbeResponses = {
+  /**
+   * MCP server probe result
+   */
+  200: {
+    status: McpStatus
+    tools: Array<{
+      name: string
+      description?: string
+    }>
+    smoke?: {
+      ok: boolean
+      tool: string
+      error?: string
+      outputPreview?: string
+    }
+  }
+}
+
+export type McpProbeResponse = McpProbeResponses[keyof McpProbeResponses]
+
 export type ProjectListData = {
   body?: never
   path?: never

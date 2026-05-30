@@ -34,6 +34,7 @@ logs/
 *.bun-build
 *.tsbuildinfo
 electron-builder-debug.yml
+测试apikey不要放入git.txt
 
 # Desktop dev generated files
 packages/desktop/resources/icons/

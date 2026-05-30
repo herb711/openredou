@@ -24,6 +24,24 @@ export const AuthCallbackPayload = Schema.Struct({
 export const AuthRemoveResponse = Schema.Struct({
   success: Schema.Literal(true),
 })
+export const ProbePayload = Schema.Struct({
+  smoke: Schema.optional(Schema.Boolean),
+})
+export const ProbeTool = Schema.Struct({
+  name: Schema.String,
+  description: Schema.optional(Schema.String),
+})
+export const ProbeSmoke = Schema.Struct({
+  ok: Schema.Boolean,
+  tool: Schema.String,
+  error: Schema.optional(Schema.String),
+  outputPreview: Schema.optional(Schema.String),
+})
+export const ProbeResponse = Schema.Struct({
+  status: MCP.Status,
+  tools: Schema.Array(ProbeTool),
+  smoke: Schema.optional(ProbeSmoke),
+})
 export class UnsupportedOAuthError extends Schema.ErrorClass<UnsupportedOAuthError>("McpUnsupportedOAuthError")(
   { error: Schema.String },
   { httpApiStatus: 400 },
@@ -36,6 +54,7 @@ export const McpPaths = {
   authAuthenticate: "/mcp/:name/auth/authenticate",
   connect: "/mcp/:name/connect",
   disconnect: "/mcp/:name/disconnect",
+  probe: "/mcp/:name/probe",
 } as const
 
 export const McpApi = HttpApi.make("mcp")
@@ -134,6 +153,19 @@ export const McpApi = HttpApi.make("mcp")
           OpenApi.annotations({
             identifier: "mcp.disconnect",
             description: "Disconnect an MCP server.",
+          }),
+        ),
+        HttpApiEndpoint.post("probe", McpPaths.probe, {
+          params: { name: Schema.String },
+          query: WorkspaceRoutingQuery,
+          payload: ProbePayload,
+          success: described(ProbeResponse, "MCP server probe result"),
+          error: McpServerNotFoundError,
+        }).annotateMerge(
+          OpenApi.annotations({
+            identifier: "mcp.probe",
+            summary: "Probe MCP server",
+            description: "Connect to an MCP server, list tools, and optionally run a low-cost smoke test.",
           }),
         ),
       )

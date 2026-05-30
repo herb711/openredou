@@ -135,6 +135,44 @@ describe("mcp HttpApi", () => {
   )
 
   it.instance(
+    "serves probe endpoint without exposing environment",
+    () =>
+      Effect.gen(function* () {
+        const tmp = yield* TestInstance
+        const handler = yield* handlerScoped
+        const response = yield* request(handler, "/mcp/demo/probe", tmp.directory, {
+          method: "POST",
+          headers: { "content-type": "application/json" },
+          body: JSON.stringify({}),
+        })
+
+        expect(response.status).toBe(200)
+        const body = yield* json<{
+          status: { status: string; error?: string }
+          tools: Array<{ name: string }>
+          environment?: Record<string, string>
+        }>(response)
+        expect(body.status.status).toBe("failed")
+        expect(body.tools).toEqual([])
+        expect(body.environment).toBeUndefined()
+      }),
+    {
+      config: {
+        mcp: {
+          demo: {
+            type: "local",
+            command: ["echo", "demo"],
+            enabled: false,
+            environment: {
+              MINIMAX_API_KEY: "secret",
+            },
+          },
+        },
+      },
+    },
+  )
+
+  it.instance(
     "serves deterministic OAuth endpoints",
     () =>
       Effect.gen(function* () {
@@ -211,6 +249,7 @@ describe("mcp HttpApi", () => {
           { method: "DELETE", route: "/mcp/missing/auth" },
           { method: "POST", route: "/mcp/missing/connect" },
           { method: "POST", route: "/mcp/missing/disconnect" },
+          { method: "POST", route: "/mcp/missing/probe", body: JSON.stringify({}) },
         ]) {
           const response = yield* request(handler, input.route, tmp.directory, {
             method: input.method,
