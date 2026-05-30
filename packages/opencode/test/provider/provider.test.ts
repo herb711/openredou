@@ -353,6 +353,18 @@ it.instance(
 )
 
 it.instance(
+  "defaultModel falls back when config model is unavailable",
+  Effect.gen(function* () {
+    yield* setProcessEnv("ANTHROPIC_API_KEY", "test-api-key")
+    const model = yield* Provider.use.defaultModel()
+    expect(String(model.providerID)).not.toBe("missing-provider")
+    expect(String(model.modelID)).not.toBe("missing-model")
+    yield* Provider.use.getModel(model.providerID, model.modelID)
+  }),
+  { config: { model: "missing-provider/missing-model", provider: {} } },
+)
+
+it.instance(
   "defaultModel returns a typed error when config excludes every provider",
   Effect.gen(function* () {
     const error = yield* Provider.use.defaultModel().pipe(Effect.flip)

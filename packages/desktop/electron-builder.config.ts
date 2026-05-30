@@ -27,7 +27,7 @@ const channel = (() => {
 })()
 
 const getBase = (): Configuration => ({
-  artifactName: "opencode-desktop-${os}-${arch}.${ext}",
+  artifactName: "openredou-desktop-${os}-${arch}.${ext}",
   directories: {
     output: "dist",
     buildResources: "resources",
@@ -54,7 +54,7 @@ const getBase = (): Configuration => ({
     sign: false,
   },
   protocols: {
-    name: "OpenCode",
+    name: "OpenRedou",
     schemes: ["opencode"],
   },
   win: {
@@ -82,28 +82,28 @@ function getConfig() {
       return {
         ...base,
         appId: "ai.opencode.desktop.dev",
-        productName: "OpenCode Dev",
-        rpm: { packageName: "opencode-dev" },
+      productName: "OpenRedou Dev",
+      rpm: { packageName: "openredou-dev" },
       }
     }
     case "beta": {
       return {
         ...base,
         appId: "ai.opencode.desktop.beta",
-        productName: "OpenCode Beta",
-        protocols: { name: "OpenCode Beta", schemes: ["opencode"] },
-        publish: { provider: "github", owner: "herb711", repo: "openredou", channel: "latest" },
-        rpm: { packageName: "opencode-beta" },
+      productName: "OpenRedou Beta",
+      protocols: { name: "OpenRedou Beta", schemes: ["opencode"] },
+      publish: { provider: "github", owner: "herb711", repo: "openredou", channel: "latest" },
+      rpm: { packageName: "openredou-beta" },
       }
     }
     case "prod": {
       return {
         ...base,
         appId: "ai.opencode.desktop",
-        productName: "OpenCode",
-        protocols: { name: "OpenCode", schemes: ["opencode"] },
-        publish: { provider: "github", owner: "herb711", repo: "openredou", channel: "latest" },
-        rpm: { packageName: "opencode" },
+      productName: "OpenRedou",
+      protocols: { name: "OpenRedou", schemes: ["opencode"] },
+      publish: { provider: "github", owner: "herb711", repo: "openredou", channel: "latest" },
+      rpm: { packageName: "openredou" },
       }
     }
   }

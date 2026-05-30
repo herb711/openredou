@@ -1828,7 +1828,23 @@ export const layer = Layer.effect(
 
     const defaultModel = Effect.fn("Provider.defaultModel")(function* () {
       const cfg = yield* config.get()
-      if (cfg.model) return parseModel(cfg.model)
+      if (cfg.model) {
+        const parsed = parseModel(cfg.model)
+        const resolved = yield* getModel(parsed.providerID, parsed.modelID).pipe(
+          Effect.as(parsed),
+          Effect.catchTag("ProviderModelNotFoundError", (error) =>
+            Effect.sync(() => {
+              log.warn("configured model not found, falling back to available model", {
+                providerID: parsed.providerID,
+                modelID: parsed.modelID,
+                suggestions: error.suggestions,
+              })
+              return undefined
+            }),
+          ),
+        )
+        if (resolved) return resolved
+      }
 
       const s = yield* InstanceState.get(state)
       const recent = yield* fs.readJson(path.join(Global.Path.state, "model.json")).pipe(
@@ -1850,7 +1866,10 @@ export const layer = Layer.effect(
         return { providerID: entry.providerID, modelID: entry.modelID }
       }
 
-      const provider = Object.values(s.providers).find((p) => !cfg.provider || Object.keys(cfg.provider).includes(p.id))
+      const configuredProviders = Object.keys(cfg.provider ?? {})
+      const provider = Object.values(s.providers).find(
+        (p) => configuredProviders.length === 0 || configuredProviders.includes(p.id),
+      )
       if (!provider) return yield* new NoProvidersError()
       const [model] = sort(Object.values(provider.models))
       if (!model) return yield* new NoModelsError({ providerID: provider.id })
