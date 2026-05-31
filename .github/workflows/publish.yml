@@ -186,57 +186,22 @@ jobs:
         env:
           OPENCODE_CHANNEL: ${{ (github.ref_name == 'beta' && 'beta') || 'prod' }}
 
-      - name: Package and publish
-        if: needs.version.outputs.release
-        run: npx electron-builder ${{ matrix.settings.platform_flag }} --publish always --config electron-builder.config.ts
-        working-directory: packages/desktop
-        timeout-minutes: 60
-        env:
-          OPENCODE_CHANNEL: ${{ (github.ref_name == 'beta' && 'beta') || 'prod' }}
-          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-
-      - name: Package (no publish)
-        if: ${{ !needs.version.outputs.release }}
+      - name: Package
         run: npx electron-builder ${{ matrix.settings.platform_flag }} --publish never --config electron-builder.config.ts
         working-directory: packages/desktop
         timeout-minutes: 60
         env:
           OPENCODE_CHANNEL: ${{ (github.ref_name == 'beta' && 'beta') || 'prod' }}
 
-      - name: Create and upload macOS .app.tar.gz
-        if: runner.os == 'macOS' && needs.version.outputs.release
-        working-directory: packages/desktop/dist
-        env:
-          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-        run: |
-          if [[ "${{ matrix.settings.target }}" == "x86_64-apple-darwin" ]]; then
-            APP_DIR="mac"
-            OUT_NAME="opencode-desktop-mac-x64.app.tar.gz"
-          elif [[ "${{ matrix.settings.target }}" == "aarch64-apple-darwin" ]]; then
-            APP_DIR="mac-arm64"
-            OUT_NAME="opencode-desktop-mac-arm64.app.tar.gz"
-          else
-            echo "Unknown macOS target: ${{ matrix.settings.target }}"
-            exit 1
-          fi
-          APP_PATH=$(find "$APP_DIR" -maxdepth 1 -name "*.app" -type d | head -1)
-          if [ -z "$APP_PATH" ]; then
-            echo "No .app bundle found in $APP_DIR"
-            exit 1
-          fi
-          tar -czf "$OUT_NAME" -C "$(dirname "$APP_PATH")" "$(basename "$APP_PATH")"
-          gh release upload "v${{ needs.version.outputs.version }}" "$OUT_NAME" --clobber --repo "${{ needs.version.outputs.repo }}"
-
-      - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
+      - name: Upload desktop artifacts (exe, dmg, AppImage only)
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
         with:
           name: opencode-desktop-${{ matrix.settings.target }}
-          path: packages/desktop/dist/*
-
-      - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
-        if: needs.version.outputs.release
-        with:
-          name: latest-yml-${{ matrix.settings.target }}
-          path: packages/desktop/dist/latest*.yml
+          path: |
+            packages/desktop/dist/*.exe
+            packages/desktop/dist/*.dmg
+            packages/desktop/dist/*.AppImage
+          if-no-files-found: error
 
   publish:
     needs:
@@ -250,52 +215,36 @@ jobs:
 
       - uses: ./.github/actions/setup-bun
 
-      - name: Login to GitHub Container Registry
-        uses: docker/login-action@c94ce9fb468520275223c153574b00df6fe4bcc9 # v3.7.0
-        with:
-          registry: ghcr.io
-          username: ${{ github.repository_owner }}
-          password: ${{ secrets.GITHUB_TOKEN }}
-
-      - name: Set up QEMU
-        uses: docker/setup-qemu-action@c7c53464625b32c7a7e944ae62b3e17d2b600130 # v3.7.0
-
-      - name: Set up Docker Buildx
-        uses: docker/setup-buildx-action@8d2750c68a42422c14e847fe6c8ac0403b4cbd6f # v3.12.0
-
-      - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4.4.0
-        with:
-          node-version: "24"
-          registry-url: "https://registry.npmjs.org"
-
-      - uses: actions/download-artifact@d3f86a106a0bac45b974a628896c90dbdf5c8093 # v4.3.0
-        with:
-          name: opencode-cli
-          path: packages/opencode/dist
-
-      - uses: actions/download-artifact@d3f86a106a0bac45b974a628896c90dbdf5c8093 # v4.3.0
-        with:
-          name: opencode-cli-windows
-          path: packages/opencode/dist
-
-      - uses: actions/download-artifact@d3f86a106a0bac45b974a628896c90dbdf5c8093 # v4.3.0
-        if: needs.version.outputs.release
-        with:
-          pattern: latest-yml-*
-          path: /tmp/latest-yml
-
       - name: Setup git committer
         run: |
           git config --global user.name "github-actions[bot]"
           git config --global user.email "41898282+github-actions[bot]@users.noreply.github.com"
 
-      - run: ./script/publish.ts
+      - name: Download all desktop artifacts
+        uses: actions/download-artifact@d3f86a106a0bac45b974a628896c90dbdf5c8093 # v4.3.0
+        with:
+          pattern: opencode-desktop-*
+          path: /tmp/desktop-artifacts
+          merge-multiple: true
+
+      - name: Upload to release
+        if: needs.version.outputs.release
         env:
-          OPENCODE_VERSION: ${{ needs.version.outputs.version }}
-          OPENCODE_RELEASE: ${{ needs.version.outputs.release }}
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-          GH_REPO: ${{ needs.version.outputs.repo }}
-          NPM_CONFIG_PROVENANCE: false
-          OPENCODE_SKIP_EXTERNAL_PUBLISH: true
-          OPENCODE_SKIP_LATEST_JSON: true
-          LATEST_YML_DIR: /tmp/latest-yml
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          VERSION="${{ needs.version.outputs.version }}"
+          REPO="${{ needs.version.outputs.repo }}"
+          TAG="v${VERSION}"
+
+          # Find and upload only .exe, .dmg, .AppImage files
+          find /tmp/desktop-artifacts -type f \( -name "*.exe" -o -name "*.dmg" -o -name "*.AppImage" \) | while read file; do
+            echo "Uploading: $(basename "$file")"
+            gh release upload "$TAG" "$file" --clobber --repo "$REPO"
+          done
+
+      - name: Publish release
+        if: needs.version.outputs.release
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          gh release edit "v${{ needs.version.outputs.version }}" --draft=false --repo "${{ needs.version.outputs.repo }}"
