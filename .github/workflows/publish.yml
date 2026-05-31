@@ -186,7 +186,7 @@ jobs:
         env:
           OPENCODE_CHANNEL: ${{ (github.ref_name == 'beta' && 'beta') || 'prod' }}
 
-      - name: Upload desktop artifacts (exe, dmg, AppImage only)
+      - name: Upload desktop artifacts
         uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
         with:
           name: opencode-desktop-${{ matrix.settings.target }}
@@ -194,6 +194,8 @@ jobs:
             packages/desktop/dist/*.exe
             packages/desktop/dist/*.dmg
             packages/desktop/dist/*.AppImage
+            packages/desktop/dist/*.zip
+            packages/desktop/dist/latest*.yml
           if-no-files-found: error
 
   publish:
@@ -229,8 +231,8 @@ jobs:
           REPO="${{ needs.version.outputs.repo }}"
           TAG="v${VERSION}"
 
-          # Find and upload only .exe, .dmg, .AppImage files
-          find /tmp/desktop-artifacts -type f \( -name "*.exe" -o -name "*.dmg" -o -name "*.AppImage" \) | while read file; do
+          # Upload installers + updater metadata
+          find /tmp/desktop-artifacts -type f \( -name "*.exe" -o -name "*.dmg" -o -name "*.AppImage" -o -name "*.zip" -o -name "latest*.yml" \) | while read file; do
             echo "Uploading: $(basename "$file")"
             gh release upload "$TAG" "$file" --clobber --repo "$REPO"
           done
