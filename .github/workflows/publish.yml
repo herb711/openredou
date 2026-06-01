@@ -195,7 +195,14 @@ jobs:
             packages/desktop/dist/*.dmg
             packages/desktop/dist/*.AppImage
             packages/desktop/dist/*.zip
-            packages/desktop/dist/latest*.yml
+          if-no-files-found: error
+
+      - name: Upload updater metadata
+        if: needs.version.outputs.release
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
+        with:
+          name: latest-yml-${{ matrix.settings.target }}
+          path: packages/desktop/dist/latest*.yml
           if-no-files-found: error
 
   publish:
@@ -222,6 +229,13 @@ jobs:
           path: /tmp/desktop-artifacts
           merge-multiple: true
 
+      - name: Download updater metadata
+        if: needs.version.outputs.release
+        uses: actions/download-artifact@d3f86a106a0bac45b974a628896c90dbdf5c8093 # v4.3.0
+        with:
+          pattern: latest-yml-*
+          path: /tmp/latest-yml
+
       - name: Upload to release
         if: needs.version.outputs.release
         env:
@@ -231,11 +245,19 @@ jobs:
           REPO="${{ needs.version.outputs.repo }}"
           TAG="v${VERSION}"
 
-          # Upload installers + updater metadata
-          find /tmp/desktop-artifacts -type f \( -name "*.exe" -o -name "*.dmg" -o -name "*.AppImage" -o -name "*.zip" -o -name "latest*.yml" \) | while read file; do
+          find /tmp/desktop-artifacts -type f \( -name "*.exe" -o -name "*.dmg" -o -name "*.AppImage" -o -name "*.zip" \) | while read file; do
             echo "Uploading: $(basename "$file")"
             gh release upload "$TAG" "$file" --clobber --repo "$REPO"
           done
+
+      - name: Finalize updater metadata
+        if: needs.version.outputs.release
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          GH_REPO: ${{ needs.version.outputs.repo }}
+          OPENCODE_VERSION: ${{ needs.version.outputs.version }}
+          LATEST_YML_DIR: /tmp/latest-yml
+        run: bun ./packages/desktop/scripts/finalize-latest-yml.ts
 
       - name: Publish release
         if: needs.version.outputs.release

@@ -60,6 +60,13 @@ async function checkAndDownloadUpdate(): Promise<UpdateCheckResult> {
       })
       return { updateAvailable: false }
     }
+    if (!hasCompatibleWindowsInstaller(updateInfo?.files)) {
+      logger.error("update metadata has no compatible Windows installer", {
+        currentArch: process.arch,
+        files: updateInfo?.files?.map((file) => file.url) ?? [],
+      })
+      return { updateAvailable: false, failed: true }
+    }
     logger.log("update available", { version })
     await autoUpdater.downloadUpdate()
     downloadedVersion = version
@@ -129,4 +136,15 @@ export async function checkForUpdates(alertOnFail: boolean, killSidecar: () => P
   if (response.response === 0) {
     await installUpdate(killSidecar)
   }
+}
+
+function hasCompatibleWindowsInstaller(files: Array<{ url: string }> | undefined) {
+  if (process.platform !== "win32") return true
+
+  const installers = files?.map((file) => file.url.toLowerCase()).filter((url) => url.endsWith(".exe")) ?? []
+  if (installers.length === 0) return true
+
+  if (!installers.some((url) => ["x64", "arm64", "ia32"].some((arch) => url.includes(arch)))) return true
+
+  return installers.some((url) => url.includes(process.arch))
 }
