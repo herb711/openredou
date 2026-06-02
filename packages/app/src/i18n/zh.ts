@@ -172,7 +172,8 @@ export const dict = {
   "provider.connect.oauth.code.invalid": "授权码无效",
   "provider.connect.oauth.auto.visit.prefix": "访问 ",
   "provider.connect.oauth.auto.visit.link": "此链接",
-  "provider.connect.oauth.auto.visit.suffix": " 并输入以下代码，以连接你的帐户并在 OpenRedou 中使用 {{provider}} 模型。",
+  "provider.connect.oauth.auto.visit.suffix":
+    " 并输入以下代码，以连接你的帐户并在 OpenRedou 中使用 {{provider}} 模型。",
   "provider.connect.oauth.auto.confirmationCode": "确认码",
   "provider.connect.toast.connected.title": "{{provider}} 已连接",
   "provider.connect.toast.connected.description": "现在可以使用 {{provider}} 模型了。",
@@ -511,6 +512,7 @@ export const dict = {
   "session.tab.session": "会话",
   "session.tab.review": "审查",
   "session.tab.context": "上下文",
+  "session.tab.rules": "规则",
   "session.panel.reviewAndFiles": "审查和文件",
   "session.review.filesChanged": "{{count}} 个文件变更",
   "session.review.change.one": "更改",
@@ -520,6 +522,9 @@ export const dict = {
   "session.review.noVcs": "未检测到 Git 版本控制系统，无法显示更改",
   "session.review.noSnapshot": "配置中已禁用快照跟踪，因此会话更改不可用",
   "session.review.noChanges": "无更改",
+  "session.rules.global": "全局规则",
+  "session.rules.project": "项目规则",
+  "session.rules.saved": "规则已保存",
   "session.files.selectToOpen": "选择要打开的文件",
   "session.files.all": "所有文件",
   "session.files.empty": "无文件",
@@ -615,6 +620,7 @@ export const dict = {
   "sidebar.project.recentSessions": "最近会话",
   "sidebar.project.viewAllSessions": "查看全部会话",
   "sidebar.project.clearNotifications": "清除通知",
+  "sidebar.project.rules": "规则",
 
   "app.name.desktop": "OpenRedou Desktop",
 
@@ -845,7 +851,8 @@ export const dict = {
   "settings.mcp.import.title": "粘贴 MiniMax MCP 配置",
   "settings.mcp.import.paste": "配置 JSON",
   "settings.mcp.import.paste.description": "可粘贴 MiniMax --agent-config 输出、完整 mcp JSON 或 OpenCode MCP 片段。",
-  "settings.mcp.import.placeholder": "{\n  \"mcp\": {\n    \"minimax-bridge\": {\n      \"type\": \"local\",\n      \"command\": [\"node\", \".../dist/index.js\"]\n    }\n  }\n}",
+  "settings.mcp.import.placeholder":
+    '{\n  "mcp": {\n    "minimax-bridge": {\n      "type": "local",\n      "command": ["node", ".../dist/index.js"]\n    }\n  }\n}',
   "settings.mcp.import.action": "解析配置",
   "settings.mcp.import.toast.success.title": "MCP 配置已解析",
   "settings.mcp.import.toast.failed.title": "无法解析 MCP 配置",

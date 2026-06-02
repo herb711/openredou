@@ -99,6 +99,8 @@ const it = testEffect(Layer.mergeAll(registryLayer(), node, Agent.defaultLayer))
 const scout = testEffect(
   Layer.mergeAll(registryLayer({ flags: { experimentalScout: true } }), node, Agent.defaultLayer),
 )
+const withClient = (client: string) =>
+  testEffect(Layer.mergeAll(registryLayer({ flags: { client } }), node, Agent.defaultLayer))
 const withBrokenPlugin = testEffect(
   Layer.mergeAll(registryLayer({ plugin: brokenPluginLayer }), node, Agent.defaultLayer),
 )
@@ -134,6 +136,33 @@ describe("tool.registry", () => {
       const ids = yield* registry.ids()
 
       expect(ids).not.toContain("task_status")
+    }),
+  )
+
+  it.instance("shows plan exit for cli clients", () =>
+    Effect.gen(function* () {
+      const registry = yield* ToolRegistry.Service
+      const ids = yield* registry.ids()
+
+      expect(ids).toContain("plan_exit")
+    }),
+  )
+
+  withClient("desktop").instance("shows plan exit for desktop clients", () =>
+    Effect.gen(function* () {
+      const registry = yield* ToolRegistry.Service
+      const ids = yield* registry.ids()
+
+      expect(ids).toContain("plan_exit")
+    }),
+  )
+
+  withClient("acp").instance("shows plan exit for acp clients", () =>
+    Effect.gen(function* () {
+      const registry = yield* ToolRegistry.Service
+      const ids = yield* registry.ids()
+
+      expect(ids).toContain("plan_exit")
     }),
   )
 

@@ -1727,6 +1727,16 @@ export type QuestionNotFoundError = {
   message: string
 }
 
+export type RuleFile = {
+  path: string
+  content: string
+}
+
+export type RulesInfo = {
+  global: RuleFile
+  project: RuleFile
+}
+
 export type PermissionNotFoundError = {
   _tag: "PermissionNotFoundError"
   requestID: string
@@ -5867,6 +5877,65 @@ export type QuestionRejectResponses = {
 }
 
 export type QuestionRejectResponse = QuestionRejectResponses[keyof QuestionRejectResponses]
+
+export type RulesGetData = {
+  body?: never
+  path?: never
+  query?: {
+    directory?: string
+    workspace?: string
+  }
+  url: "/rules"
+}
+
+export type RulesGetErrors = {
+  /**
+   * Bad request
+   */
+  400: BadRequestError
+}
+
+export type RulesGetError = RulesGetErrors[keyof RulesGetErrors]
+
+export type RulesGetResponses = {
+  /**
+   * Workspace rules
+   */
+  200: RulesInfo
+}
+
+export type RulesGetResponse = RulesGetResponses[keyof RulesGetResponses]
+
+export type RulesUpdateData = {
+  body?: {
+    global: string
+    project: string
+  }
+  path?: never
+  query?: {
+    directory?: string
+    workspace?: string
+  }
+  url: "/rules"
+}
+
+export type RulesUpdateErrors = {
+  /**
+   * BadRequest | InvalidRequestError
+   */
+  400: EffectHttpApiErrorBadRequest | InvalidRequestError
+}
+
+export type RulesUpdateError = RulesUpdateErrors[keyof RulesUpdateErrors]
+
+export type RulesUpdateResponses = {
+  /**
+   * Workspace rules updated
+   */
+  200: RulesInfo
+}
+
+export type RulesUpdateResponse = RulesUpdateResponses[keyof RulesUpdateResponses]
 
 export type PermissionListData = {
   body?: never

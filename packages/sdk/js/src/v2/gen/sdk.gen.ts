@@ -159,6 +159,10 @@ import type {
   QuestionRejectResponses,
   QuestionReplyErrors,
   QuestionReplyResponses,
+  RulesGetErrors,
+  RulesGetResponses,
+  RulesUpdateErrors,
+  RulesUpdateResponses,
   SessionAbortErrors,
   SessionAbortResponses,
   SessionChildrenErrors,
@@ -2804,6 +2808,77 @@ export class Question extends HeyApiClient {
   }
 }
 
+export class Rules extends HeyApiClient {
+  /**
+   * Get rules
+   *
+   * Read global and project AGENTS.md instruction files for the current workspace.
+   */
+  public get<ThrowOnError extends boolean = false>(
+    parameters?: {
+      directory?: string
+      workspace?: string
+    },
+    options?: Options<never, ThrowOnError>,
+  ) {
+    const params = buildClientParams(
+      [parameters],
+      [
+        {
+          args: [
+            { in: "query", key: "directory" },
+            { in: "query", key: "workspace" },
+          ],
+        },
+      ],
+    )
+    return (options?.client ?? this.client).get<RulesGetResponses, RulesGetErrors, ThrowOnError>({
+      url: "/rules",
+      ...options,
+      ...params,
+    })
+  }
+
+  /**
+   * Update rules
+   *
+   * Update global and project AGENTS.md instruction files for the current workspace.
+   */
+  public update<ThrowOnError extends boolean = false>(
+    parameters?: {
+      directory?: string
+      workspace?: string
+      global?: string
+      project?: string
+    },
+    options?: Options<never, ThrowOnError>,
+  ) {
+    const params = buildClientParams(
+      [parameters],
+      [
+        {
+          args: [
+            { in: "query", key: "directory" },
+            { in: "query", key: "workspace" },
+            { in: "body", key: "global" },
+            { in: "body", key: "project" },
+          ],
+        },
+      ],
+    )
+    return (options?.client ?? this.client).patch<RulesUpdateResponses, RulesUpdateErrors, ThrowOnError>({
+      url: "/rules",
+      ...options,
+      ...params,
+      headers: {
+        "Content-Type": "application/json",
+        ...options?.headers,
+        ...params.headers,
+      },
+    })
+  }
+}
+
 export class Permission extends HeyApiClient {
   /**
    * List pending permissions
@@ -5160,6 +5235,11 @@ export class OpencodeClient extends HeyApiClient {
   private _question?: Question
   get question(): Question {
     return (this._question ??= new Question({ client: this.client }))
+  }
+
+  private _rules?: Rules
+  get rules(): Rules {
+    return (this._rules ??= new Rules({ client: this.client }))
   }
 
   private _permission?: Permission

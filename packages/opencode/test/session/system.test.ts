@@ -1,11 +1,15 @@
 import { describe, expect } from "bun:test"
 import { Effect, Layer } from "effect"
+import path from "path"
 import type { Agent } from "../../src/agent/agent"
 import { NamedError } from "@opencode-ai/core/util/error"
+import { Global } from "@opencode-ai/core/global"
 import { Skill } from "../../src/skill"
 import { Permission } from "../../src/permission"
 import { SystemPrompt } from "../../src/session/system"
 import { testEffect } from "../lib/effect"
+import { TestInstance } from "../fixture/fixture"
+import type { Provider } from "../../src/provider/provider"
 
 const skills: Skill.Info[] = [
   {
@@ -62,6 +66,21 @@ const it = testEffect(
 )
 
 describe("session.system", () => {
+  it.instance("environment explains rule and memory persistence targets", () =>
+    Effect.gen(function* () {
+      const prompt = yield* SystemPrompt.Service
+      const instance = yield* TestInstance
+      const [output] = yield* prompt.environment({
+        providerID: "test",
+        api: { id: "test-model" },
+      } as Provider.Model)
+
+      expect(output).toContain(`Global rules file: ${path.join(Global.make().config, "AGENTS.md")}`)
+      expect(output).toContain(`Project rules file: ${path.join(instance.directory, "AGENTS.md")}`)
+      expect(output).toContain("when they do not specify a scope")
+    }),
+  )
+
   it.effect("skills output is sorted by name and stable across calls", () =>
     Effect.gen(function* () {
       const prompt = yield* SystemPrompt.Service

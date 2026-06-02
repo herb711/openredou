@@ -262,7 +262,7 @@ export const layer: Layer.Layer<
             tool.skill,
             tool.patch,
             ...(flags.experimentalLspTool ? [tool.lsp] : []),
-            ...(flags.experimentalPlanMode && flags.client === "cli" ? [tool.plan] : []),
+            tool.plan,
           ],
           task: tool.task,
           read: tool.read,

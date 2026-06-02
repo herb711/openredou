@@ -8,6 +8,7 @@ import { Provider } from "@/provider/provider"
 import { InstanceState } from "@/effect/instance-state"
 import { MessageID, PartID } from "../session/schema"
 import EXIT_DESCRIPTION from "./plan-exit.txt"
+import { AppFileSystem } from "@opencode-ai/core/filesystem"
 
 export const Parameters = Schema.Struct({})
 
@@ -17,6 +18,7 @@ export const PlanExitTool = Tool.define(
     const session = yield* Session.Service
     const question = yield* Question.Service
     const provider = yield* Provider.Service
+    const fsys = yield* AppFileSystem.Service
 
     return {
       description: EXIT_DESCRIPTION,
@@ -25,12 +27,14 @@ export const PlanExitTool = Tool.define(
         Effect.gen(function* () {
           const instance = yield* InstanceState.context
           const info = yield* session.get(ctx.sessionID)
-          const plan = path.relative(instance.worktree, Session.plan(info, instance))
+          const planPath = Session.plan(info, instance)
+          const planExists = yield* fsys.existsSafe(planPath)
+          const plan = planExists ? path.relative(instance.worktree, planPath) : undefined
           const answers = yield* question.ask({
             sessionID: ctx.sessionID,
             questions: [
               {
-                question: `Plan at ${plan} is complete. Would you like to switch to the build agent and start implementing?`,
+                question: `${plan ? `Plan at ${plan}` : "The plan"} is complete. Would you like to switch to the build agent and start implementing?`,
                 header: "Build Agent",
                 custom: false,
                 options: [
@@ -63,7 +67,9 @@ export const PlanExitTool = Tool.define(
             messageID: msg.id,
             sessionID: ctx.sessionID,
             type: "text",
-            text: `The plan at ${plan} has been approved, you can now edit files. Execute the plan`,
+            text: plan
+              ? `The plan at ${plan} has been approved, you can now edit files. Execute the plan`
+              : "The plan has been approved, you can now edit files. Execute the plan described in this conversation",
             synthetic: true,
           } satisfies MessageV2.TextPart)
 

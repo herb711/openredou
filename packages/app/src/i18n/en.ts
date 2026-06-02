@@ -541,6 +541,7 @@ export const dict = {
   "session.tab.session": "Session",
   "session.tab.review": "Review",
   "session.tab.context": "Context",
+  "session.tab.rules": "Rules",
   "session.panel.reviewAndFiles": "Review and files",
   "session.review.filesChanged": "{{count}} Files Changed",
   "session.review.change.one": "Change",
@@ -556,6 +557,9 @@ export const dict = {
   "session.review.noChanges": "No changes",
   "session.review.noUncommittedChanges": "No uncommitted changes yet",
   "session.review.noBranchChanges": "No branch changes yet",
+  "session.rules.global": "Global rules",
+  "session.rules.project": "Project rules",
+  "session.rules.saved": "Rules saved",
 
   "session.files.selectToOpen": "Select a file to open",
   "session.files.all": "All files",
@@ -701,6 +705,7 @@ export const dict = {
   "sidebar.project.recentSessions": "Recent sessions",
   "sidebar.project.viewAllSessions": "View all sessions",
   "sidebar.project.clearNotifications": "Clear notifications",
+  "sidebar.project.rules": "Rules",
   "sidebar.empty.title": "No projects open",
   "sidebar.empty.description": "Open a project to get started",
 
@@ -982,8 +987,10 @@ export const dict = {
   "settings.mcp.toast.failed.title": "Failed to save MCP settings",
   "settings.mcp.import.title": "Paste MiniMax MCP config",
   "settings.mcp.import.paste": "Config JSON",
-  "settings.mcp.import.paste.description": "Paste MiniMax --agent-config output, a full mcp JSON object, or an OpenCode MCP server fragment.",
-  "settings.mcp.import.placeholder": "{\n  \"mcp\": {\n    \"minimax-bridge\": {\n      \"type\": \"local\",\n      \"command\": [\"node\", \".../dist/index.js\"]\n    }\n  }\n}",
+  "settings.mcp.import.paste.description":
+    "Paste MiniMax --agent-config output, a full mcp JSON object, or an OpenCode MCP server fragment.",
+  "settings.mcp.import.placeholder":
+    '{\n  "mcp": {\n    "minimax-bridge": {\n      "type": "local",\n      "command": ["node", ".../dist/index.js"]\n    }\n  }\n}',
   "settings.mcp.import.action": "Parse config",
   "settings.mcp.import.toast.success.title": "MCP config parsed",
   "settings.mcp.import.toast.failed.title": "Could not parse MCP config",

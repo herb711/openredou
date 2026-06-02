@@ -15,6 +15,7 @@ import { ProjectApi } from "./groups/project"
 import { ProviderApi } from "./groups/provider"
 import { PtyApi, PtyConnectApi } from "./groups/pty"
 import { QuestionApi } from "./groups/question"
+import { RulesApi } from "./groups/rules"
 import { SessionApi } from "./groups/session"
 import { SyncApi } from "./groups/sync"
 import { TuiApi } from "./groups/tui"
@@ -42,6 +43,7 @@ export const InstanceHttpApi = HttpApi.make("opencode-instance")
   .addHttpApi(ProjectApi)
   .addHttpApi(PtyApi)
   .addHttpApi(QuestionApi)
+  .addHttpApi(RulesApi)
   .addHttpApi(PermissionApi)
   .addHttpApi(ProviderApi)
   .addHttpApi(SessionApi)

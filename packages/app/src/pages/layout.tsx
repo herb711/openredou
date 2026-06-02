@@ -1453,6 +1453,15 @@ export default function Layout(props: ParentProps) {
     layout.sidebar.toggleWorkspaces(project.worktree)
   }
 
+  function openProjectRules(project: LocalProject) {
+    const directory = project.worktree
+    const slug = base64Encode(directory)
+    server.projects.touch(directory)
+    void layout.tabs(slug).open("rules")
+    layout.view(slug).reviewPanel.open()
+    navigateWithSidebarReset(`/${slug}/session`)
+  }
+
   const showEditProjectDialog = (project: LocalProject) => {
     const run = ++dialogRun
     void import("@/components/dialog-edit-project").then((x) => {
@@ -2018,6 +2027,7 @@ export default function Layout(props: ParentProps) {
     navigateToProject,
     openSidebar: () => layout.sidebar.open(),
     closeProject,
+    openProjectRules,
     showEditProjectDialog,
     toggleProjectWorkspaces,
     workspacesEnabled: (project) => project.vcs === "git" && layout.sidebar.workspaces(project.worktree)(),
@@ -2169,6 +2179,13 @@ export default function Layout(props: ParentProps) {
                           }}
                         >
                           <DropdownMenu.ItemLabel>{language.t("common.edit")}</DropdownMenu.ItemLabel>
+                        </DropdownMenu.Item>
+                        <DropdownMenu.Item
+                          onSelect={() => {
+                            openProjectRules(project)
+                          }}
+                        >
+                          <DropdownMenu.ItemLabel>{language.t("sidebar.project.rules")}</DropdownMenu.ItemLabel>
                         </DropdownMenu.Item>
                         <DropdownMenu.Item
                           data-action="project-workspaces-toggle"

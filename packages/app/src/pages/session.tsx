@@ -1,4 +1,4 @@
-import type { Project, UserMessage } from "@opencode-ai/sdk/v2"
+import type { Part, Project, UserMessage } from "@opencode-ai/sdk/v2"
 import { useDialog } from "@opencode-ai/ui/context/dialog"
 import { createQuery, skipToken, useMutation, useQueryClient } from "@tanstack/solid-query"
 import {
@@ -265,15 +265,6 @@ export default function Page() {
   const size = createSizing()
   const isV2NewSessionPage = () =>
     shouldUseV2NewSessionPage({ newLayoutDesigns: newSessionDesign(), sessionID: params.id })
-  const desktopReviewOpen = createMemo(() => isDesktop() && view().reviewPanel.opened() && !isV2NewSessionPage())
-  const desktopFileTreeOpen = createMemo(() => isDesktop() && layout.fileTree.opened() && !isV2NewSessionPage())
-  const desktopSidePanelOpen = createMemo(() => desktopReviewOpen() || desktopFileTreeOpen())
-  const sessionPanelWidth = createMemo(() => {
-    if (!desktopSidePanelOpen()) return "100%"
-    if (desktopReviewOpen()) return `${layout.session.width()}px`
-    return `calc(100% - ${layout.fileTree.width()}px)`
-  })
-  const centered = createMemo(() => isDesktop() && !desktopReviewOpen())
 
   function normalizeTab(tab: string) {
     if (!tab.startsWith("file://")) return tab
@@ -310,6 +301,16 @@ export default function Page() {
   })
   const activeTab = tabState.activeTab
   const activeFileTab = tabState.activeFileTab
+  const desktopRulesOpen = createMemo(() => isDesktop() && view().reviewPanel.opened() && tabState.rulesOpen())
+  const desktopReviewOpen = createMemo(() => isDesktop() && view().reviewPanel.opened() && !isV2NewSessionPage())
+  const desktopFileTreeOpen = createMemo(() => isDesktop() && layout.fileTree.opened() && !isV2NewSessionPage())
+  const desktopSidePanelOpen = createMemo(() => desktopReviewOpen() || desktopFileTreeOpen() || desktopRulesOpen())
+  const sessionPanelWidth = createMemo(() => {
+    if (!desktopSidePanelOpen()) return "100%"
+    if (desktopReviewOpen() || desktopRulesOpen()) return `${layout.session.width()}px`
+    return `calc(100% - ${layout.fileTree.width()}px)`
+  })
+  const centered = createMemo(() => isDesktop() && !desktopReviewOpen() && !desktopRulesOpen())
   const revertMessageID = createMemo(() => info()?.revert?.messageID)
   const messages = createMemo(() => (params.id ? (sync.data.message[params.id] ?? []) : []))
   const messagesReady = createMemo(() => {
@@ -712,6 +713,22 @@ export default function Page() {
       { defer: true },
     ),
   )
+
+  let lastPlanSwitch: string | undefined
+  const stopPlanSwitch = sdk.event.listen((evt) => {
+    if (evt.details.type !== "message.part.updated") return
+    const part = (evt.details.properties as { part?: Part } | undefined)?.part
+    if (!part) return
+    if (part.sessionID !== params.id) return
+    if (part.type !== "tool") return
+    if (part.tool !== "plan_exit") return
+    if (part.state.status !== "completed") return
+    if (part.id === lastPlanSwitch) return
+
+    lastPlanSwitch = part.id
+    local.agent.set("build")
+  })
+  onCleanup(stopPlanSwitch)
 
   const stopVcs = sdk.event.listen((evt) => {
     if (evt.details.type !== "file.watcher.updated") return
@@ -1805,7 +1822,6 @@ export default function Page() {
           </div>
 
           <Show when={params.id || !newSessionDesign()}>{composerRegion("dock")}</Show>
-
         </div>
 
         <SessionSidePanel
