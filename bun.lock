@@ -29,7 +29,7 @@
     },
     "packages/app": {
       "name": "@opencode-ai/app",
-      "version": "1.15.13",
+      "version": "1.15.14",
       "dependencies": {
         "@kobalte/core": "catalog:",
         "@opencode-ai/core": "workspace:*",
@@ -293,7 +293,7 @@
     },
     "packages/desktop": {
       "name": "@opencode-ai/desktop",
-      "version": "1.15.13",
+      "version": "1.15.14",
       "dependencies": {
         "@zip.js/zip.js": "2.7.62",
         "drizzle-orm": "catalog:",
@@ -439,7 +439,7 @@
     },
     "packages/opencode": {
       "name": "opencode",
-      "version": "1.15.13",
+      "version": "1.15.14",
       "bin": {
         "opencode": "./bin/opencode",
       },
@@ -617,7 +617,7 @@
     },
     "packages/sdk/js": {
       "name": "@opencode-ai/sdk",
-      "version": "1.15.13",
+      "version": "1.15.14",
       "dependencies": {
         "cross-spawn": "catalog:",
       },

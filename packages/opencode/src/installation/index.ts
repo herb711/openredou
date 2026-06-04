@@ -84,6 +84,7 @@ const ChocoPackage = Schema.Struct({
   d: Schema.Struct({ results: Schema.Array(Schema.Struct({ Version: Schema.String })) }),
 })
 const ScoopManifest = NpmPackage
+const GitHubReleaseRepo = "herb711/openredou"
 
 export interface Interface {
   readonly info: () => Effect.Effect<Info>
@@ -151,7 +152,9 @@ export const layer: Layer.Layer<Service, never, HttpClient.HttpClient | AppProce
 
     const upgradeCurl = Effect.fnUntraced(
       function* (target: string) {
-        const response = yield* httpOk.execute(HttpClientRequest.get("https://opencode.ai/install"))
+        const response = yield* httpOk.execute(
+          HttpClientRequest.get(`https://raw.githubusercontent.com/${GitHubReleaseRepo}/dev/install`),
+        )
         const body = yield* response.text
         const bodyBytes = new TextEncoder().encode(body)
         const result = yield* appProcess.run(
@@ -261,7 +264,7 @@ export const layer: Layer.Layer<Service, never, HttpClient.HttpClient | AppProce
         }
 
         const response = yield* httpOk.execute(
-          HttpClientRequest.get("https://api.github.com/repos/anomalyco/opencode/releases/latest").pipe(
+          HttpClientRequest.get(`https://api.github.com/repos/${GitHubReleaseRepo}/releases/latest`).pipe(
             HttpClientRequest.acceptJson,
           ),
         )

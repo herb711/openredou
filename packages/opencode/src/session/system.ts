@@ -1,6 +1,8 @@
 import { Context, Effect, Layer } from "effect"
+import path from "path"
 
 import { InstanceState } from "@/effect/instance-state"
+import { Global } from "@opencode-ai/core/global"
 
 import PROMPT_ANTHROPIC from "./prompt/anthropic.txt"
 import PROMPT_DEFAULT from "./prompt/default.txt"
@@ -47,6 +49,8 @@ export const layer = Layer.effect(
     return Service.of({
       environment: Effect.fn("SystemPrompt.environment")(function* (model: Provider.Model) {
         const ctx = yield* InstanceState.context
+        const globalRules = path.join(Global.make().config, "AGENTS.md")
+        const projectRules = path.join(ctx.directory, "AGENTS.md")
         return [
           [
             `You are powered by the model named ${model.api.id}. The exact model ID is ${model.providerID}/${model.api.id}`,
@@ -57,7 +61,14 @@ export const layer = Layer.effect(
             `  Is directory a git repo: ${ctx.project.vcs === "git" ? "yes" : "no"}`,
             `  Platform: ${process.platform}`,
             `  Today's date: ${new Date().toDateString()}`,
+            `  Global rules file: ${globalRules}`,
+            `  Project rules file: ${projectRules}`,
             `</env>`,
+            `Rule and memory persistence:`,
+            `- If the user asks you to remember something, save a memory, record a rule, or update instructions, write it to an AGENTS.md file with the available edit/write tools.`,
+            `- Use the global rules file only when the user explicitly asks for a global, user-level, or all-projects rule or memory.`,
+            `- Use the project rules file when the user asks for a project, workspace, or local rule or memory, or when they do not specify a scope.`,
+            `- Do not use other memory files unless the user explicitly names a different path.`,
           ].join("\n"),
         ]
       }),

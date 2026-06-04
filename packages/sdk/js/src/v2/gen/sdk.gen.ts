@@ -99,6 +99,8 @@ import type {
   McpDisconnectErrors,
   McpDisconnectResponses,
   McpLocalConfig,
+  McpProbeErrors,
+  McpProbeResponses,
   McpRemoteConfig,
   McpStatusErrors,
   McpStatusResponses,
@@ -157,6 +159,10 @@ import type {
   QuestionRejectResponses,
   QuestionReplyErrors,
   QuestionReplyResponses,
+  RulesGetErrors,
+  RulesGetResponses,
+  RulesUpdateErrors,
+  RulesUpdateResponses,
   SessionAbortErrors,
   SessionAbortResponses,
   SessionChildrenErrors,
@@ -2225,6 +2231,45 @@ export class Mcp extends HeyApiClient {
     })
   }
 
+  /**
+   * Probe MCP server
+   *
+   * Connect to an MCP server, list tools, and optionally run a low-cost smoke test.
+   */
+  public probe<ThrowOnError extends boolean = false>(
+    parameters: {
+      name: string
+      directory?: string
+      workspace?: string
+      smoke?: boolean
+    },
+    options?: Options<never, ThrowOnError>,
+  ) {
+    const params = buildClientParams(
+      [parameters],
+      [
+        {
+          args: [
+            { in: "path", key: "name" },
+            { in: "query", key: "directory" },
+            { in: "query", key: "workspace" },
+            { in: "body", key: "smoke" },
+          ],
+        },
+      ],
+    )
+    return (options?.client ?? this.client).post<McpProbeResponses, McpProbeErrors, ThrowOnError>({
+      url: "/mcp/{name}/probe",
+      ...options,
+      ...params,
+      headers: {
+        "Content-Type": "application/json",
+        ...options?.headers,
+        ...params.headers,
+      },
+    })
+  }
+
   private _auth?: Auth2
   get auth(): Auth2 {
     return (this._auth ??= new Auth2({ client: this.client }))
@@ -2759,6 +2804,77 @@ export class Question extends HeyApiClient {
       url: "/question/{requestID}/reject",
       ...options,
       ...params,
+    })
+  }
+}
+
+export class Rules extends HeyApiClient {
+  /**
+   * Get rules
+   *
+   * Read global and project AGENTS.md instruction files for the current workspace.
+   */
+  public get<ThrowOnError extends boolean = false>(
+    parameters?: {
+      directory?: string
+      workspace?: string
+    },
+    options?: Options<never, ThrowOnError>,
+  ) {
+    const params = buildClientParams(
+      [parameters],
+      [
+        {
+          args: [
+            { in: "query", key: "directory" },
+            { in: "query", key: "workspace" },
+          ],
+        },
+      ],
+    )
+    return (options?.client ?? this.client).get<RulesGetResponses, RulesGetErrors, ThrowOnError>({
+      url: "/rules",
+      ...options,
+      ...params,
+    })
+  }
+
+  /**
+   * Update rules
+   *
+   * Update global and project AGENTS.md instruction files for the current workspace.
+   */
+  public update<ThrowOnError extends boolean = false>(
+    parameters?: {
+      directory?: string
+      workspace?: string
+      global?: string
+      project?: string
+    },
+    options?: Options<never, ThrowOnError>,
+  ) {
+    const params = buildClientParams(
+      [parameters],
+      [
+        {
+          args: [
+            { in: "query", key: "directory" },
+            { in: "query", key: "workspace" },
+            { in: "body", key: "global" },
+            { in: "body", key: "project" },
+          ],
+        },
+      ],
+    )
+    return (options?.client ?? this.client).patch<RulesUpdateResponses, RulesUpdateErrors, ThrowOnError>({
+      url: "/rules",
+      ...options,
+      ...params,
+      headers: {
+        "Content-Type": "application/json",
+        ...options?.headers,
+        ...params.headers,
+      },
     })
   }
 }
@@ -5127,6 +5243,11 @@ export class OpencodeClient extends HeyApiClient {
   private _question?: Question
   get question(): Question {
     return (this._question ??= new Question({ client: this.client }))
+  }
+
+  private _rules?: Rules
+  get rules(): Rules {
+    return (this._rules ??= new Rules({ client: this.client }))
   }
 
   private _permission?: Permission

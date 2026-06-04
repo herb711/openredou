@@ -112,6 +112,18 @@ This is used internally and can be invoked using `@general` in messages.
 
 Learn more about [agents](https://opencode.ai/docs/agents).
 
+### MiniMax MCP Configuration
+
+OpenRedou's MCP settings page can import the MiniMax Bridge MCP config directly.
+
+1. Install `minimax-bridge-mcp` and run `node dist/index.js --agent-config`.
+2. Open OpenRedou Settings -> MCP.
+3. Paste the generated JSON into "Paste MiniMax MCP config" and parse it.
+4. Enter the MiniMax API key in the dedicated API key field.
+5. Save, then use the MCP test cards to probe the connection, list tools, and run the API key smoke test.
+
+The pasted config should not contain `MINIMAX_API_KEY`; OpenRedou writes it locally from the separate key field when saving.
+
 ### Documentation
 
 For more info on how to configure OpenCode, [**head over to our docs**](https://opencode.ai/docs).

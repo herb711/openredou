@@ -27,7 +27,7 @@ const channel = (() => {
 })()
 
 const getBase = (): Configuration => ({
-  artifactName: "opencode-desktop-${os}-${arch}.${ext}",
+  artifactName: "openredou-desktop-${os}-${arch}.${ext}",
   directories: {
     output: "dist",
     buildResources: "resources",
@@ -43,27 +43,23 @@ const getBase = (): Configuration => ({
   mac: {
     category: "public.app-category.developer-tools",
     icon: `resources/icons/icon.icns`,
-    hardenedRuntime: true,
+    hardenedRuntime: false,
     gatekeeperAssess: false,
     entitlements: "resources/entitlements.plist",
     entitlementsInherit: "resources/entitlements.plist",
-    notarize: true,
+    notarize: false,
     target: ["dmg", "zip"],
   },
   dmg: {
-    sign: true,
+    sign: false,
   },
   protocols: {
-    name: "OpenCode",
+    name: "OpenRedou",
     schemes: ["opencode"],
   },
   win: {
     icon: `resources/icons/icon.ico`,
-    signtoolOptions: {
-      sign: signWindows,
-    },
     target: ["nsis"],
-    verifyUpdateCodeSignature: false,
   },
   nsis: {
     oneClick: true,
@@ -86,28 +82,28 @@ function getConfig() {
       return {
         ...base,
         appId: "ai.opencode.desktop.dev",
-        productName: "OpenCode Dev",
-        rpm: { packageName: "opencode-dev" },
+      productName: "OpenRedou Dev",
+      rpm: { packageName: "openredou-dev" },
       }
     }
     case "beta": {
       return {
         ...base,
         appId: "ai.opencode.desktop.beta",
-        productName: "OpenCode Beta",
-        protocols: { name: "OpenCode Beta", schemes: ["opencode"] },
-        publish: { provider: "github", owner: "anomalyco", repo: "opencode-beta", channel: "latest" },
-        rpm: { packageName: "opencode-beta" },
+      productName: "OpenRedou Beta",
+      protocols: { name: "OpenRedou Beta", schemes: ["opencode"] },
+      publish: { provider: "github", owner: "herb711", repo: "openredou", channel: "latest" },
+      rpm: { packageName: "openredou-beta" },
       }
     }
     case "prod": {
       return {
         ...base,
         appId: "ai.opencode.desktop",
-        productName: "OpenCode",
-        protocols: { name: "OpenCode", schemes: ["opencode"] },
-        publish: { provider: "github", owner: "anomalyco", repo: "opencode", channel: "latest" },
-        rpm: { packageName: "opencode" },
+      productName: "OpenRedou",
+      protocols: { name: "OpenRedou", schemes: ["opencode"] },
+      publish: { provider: "github", owner: "herb711", repo: "openredou", channel: "latest" },
+      rpm: { packageName: "openredou" },
       }
     }
   }

@@ -26,6 +26,7 @@ import { createFileTabListSync } from "@/pages/session/file-tab-scroll"
 import { FileTabContent } from "@/pages/session/file-tabs"
 import { createOpenSessionFileTab, createSessionTabs, getTabReorderIndex, type Sizing } from "@/pages/session/helpers"
 import { setSessionHandoff } from "@/pages/session/handoff"
+import { SessionRulesTab } from "@/pages/session/rules-tab"
 import { useSessionLayout } from "@/pages/session/session-layout"
 
 type RenderDiff = (SnapshotFileDiff & { file: string }) | VcsFileDiff
@@ -141,6 +142,7 @@ export function SessionSidePanel(props: {
     hasReview: props.canReview,
   })
   const contextOpen = tabState.contextOpen
+  const rulesOpen = tabState.rulesOpen
   const openedTabs = tabState.openedTabs
   const activeTab = tabState.activeTab
   const activeFileTab = tabState.activeFileTab
@@ -203,7 +205,7 @@ export function SessionSidePanel(props: {
   })
 
   return (
-    <Show when={isDesktop() && !(settings.general.newLayoutDesigns() && !params.id)}>
+    <Show when={isDesktop() && !(settings.general.newLayoutDesigns() && !params.id && !rulesOpen())}>
       <aside
         id="review-panel"
         aria-label={language.t("session.panel.reviewAndFiles")}
@@ -240,7 +242,7 @@ export function SessionSidePanel(props: {
                     <div class="sticky top-0 shrink-0 flex">
                       <Tabs.List
                         ref={(el: HTMLDivElement) => {
-                          const stop = createFileTabListSync({ el, contextOpen })
+                          const stop = createFileTabListSync({ el, contextOpen: () => contextOpen() || rulesOpen() })
                           onCleanup(stop)
                         }}
                       >
@@ -279,6 +281,33 @@ export function SessionSidePanel(props: {
                             <div class="flex items-center gap-2">
                               <SessionContextUsage variant="indicator" />
                               <div>{language.t("session.tab.context")}</div>
+                            </div>
+                          </Tabs.Trigger>
+                        </Show>
+                        <Show when={rulesOpen()}>
+                          <Tabs.Trigger
+                            value="rules"
+                            closeButton={
+                              <TooltipKeybind
+                                title={language.t("common.closeTab")}
+                                keybind={command.keybind("tab.close")}
+                                placement="bottom"
+                                gutter={10}
+                              >
+                                <IconButton
+                                  icon="close-small"
+                                  variant="ghost"
+                                  class="h-5 w-5"
+                                  onClick={() => tabs().close("rules")}
+                                  aria-label={language.t("common.closeTab")}
+                                />
+                              </TooltipKeybind>
+                            }
+                            hideCloseButton
+                            onMiddleClick={() => tabs().close("rules")}
+                          >
+                            <div class="flex items-center gap-2">
+                              <div>{language.t("session.tab.rules")}</div>
                             </div>
                           </Tabs.Trigger>
                         </Show>
@@ -332,6 +361,16 @@ export function SessionSidePanel(props: {
                         <Show when={activeTab() === "context"}>
                           <div class="relative pt-2 flex-1 min-h-0 overflow-hidden">
                             <SessionContextTab />
+                          </div>
+                        </Show>
+                      </Tabs.Content>
+                    </Show>
+
+                    <Show when={rulesOpen()}>
+                      <Tabs.Content value="rules" class="flex flex-col h-full overflow-hidden contain-strict">
+                        <Show when={activeTab() === "rules"}>
+                          <div class="relative flex-1 min-h-0 overflow-hidden">
+                            <SessionRulesTab />
                           </div>
                         </Show>
                       </Tabs.Content>

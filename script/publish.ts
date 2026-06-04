@@ -9,6 +9,8 @@ console.log("=== publishing ===\n")
 const dir = fileURLToPath(new URL("..", import.meta.url))
 process.chdir(dir)
 const tag = `v${Script.version}`
+const skipExternalPublish = /^(1|true|yes)$/i.test(process.env.OPENCODE_SKIP_EXTERNAL_PUBLISH ?? "")
+const skipLatestJson = /^(1|true|yes)$/i.test(process.env.OPENCODE_SKIP_LATEST_JSON ?? "")
 
 const pkgjsons = await Array.fromAsync(
   new Bun.Glob("**/package.json").scan({
@@ -42,17 +44,27 @@ if (Script.release && !Script.preview) {
 
 await prepareReleaseFiles()
 
-console.log("\n=== cli ===\n")
-await $`bun ./packages/opencode/script/publish.ts`
+if (skipExternalPublish) {
+  console.log("\n=== external publishing ===\n")
+  console.log("skipped because OPENCODE_SKIP_EXTERNAL_PUBLISH is set")
+} else {
+  console.log("\n=== cli ===\n")
+  await $`bun ./packages/opencode/script/publish.ts`
 
-console.log("\n=== sdk ===\n")
-await $`bun ./packages/sdk/js/script/publish.ts`
+  console.log("\n=== sdk ===\n")
+  await $`bun ./packages/sdk/js/script/publish.ts`
 
-console.log("\n=== plugin ===\n")
-await $`bun ./packages/plugin/script/publish.ts`
+  console.log("\n=== plugin ===\n")
+  await $`bun ./packages/plugin/script/publish.ts`
+}
 
 if (Script.release) {
-  await $`bun ./packages/desktop/scripts/finalize-latest-json.ts`
+  if (skipLatestJson) {
+    console.log("\n=== latest.json ===\n")
+    console.log("skipped because OPENCODE_SKIP_LATEST_JSON is set")
+  } else {
+    await $`bun ./packages/desktop/scripts/finalize-latest-json.ts`
+  }
   await $`bun ./packages/desktop/scripts/finalize-latest-yml.ts`
 }
 
