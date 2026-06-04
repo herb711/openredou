@@ -44,6 +44,7 @@ describe("bootstrapDirectory", () => {
 
     await bootstrapDirectory({
       directory: "/project",
+      mcp: true,
       global: {
         config: {} satisfies Config,
         path: { state: "", config: "", worktree: "/project", directory: "/project", home: "/home" },

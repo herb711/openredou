@@ -1,5 +1,5 @@
 import { SegmentedControl as Kobalte } from "@kobalte/core/segmented-control"
-import { For, splitProps } from "solid-js"
+import { For, Show, splitProps } from "solid-js"
 import type { ComponentProps, JSX } from "solid-js"
 
 export type RadioGroupProps<T> = Omit<
@@ -16,6 +16,7 @@ export type RadioGroupProps<T> = Omit<
   classList?: ComponentProps<"div">["classList"]
   size?: "small" | "medium"
   fill?: boolean
+  indicator?: boolean
   pad?: "none" | "normal"
 }
 
@@ -31,6 +32,7 @@ export function RadioGroup<T>(props: RadioGroupProps<T>) {
     "onSelect",
     "size",
     "fill",
+    "indicator",
     "pad",
   ])
 
@@ -54,6 +56,7 @@ export function RadioGroup<T>(props: RadioGroupProps<T>) {
       data-component="radio-group"
       data-size={local.size ?? "medium"}
       data-fill={local.fill ? "" : undefined}
+      data-indicator={local.indicator === false ? "false" : "true"}
       data-pad={local.pad ?? "normal"}
       classList={{
         ...local.classList,
@@ -64,7 +67,9 @@ export function RadioGroup<T>(props: RadioGroupProps<T>) {
       onChange={(v) => local.onSelect?.(findOption(v))}
     >
       <div role="presentation" data-slot="radio-group-wrapper">
-        <Kobalte.Indicator data-slot="radio-group-indicator" />
+        <Show when={local.indicator !== false}>
+          <Kobalte.Indicator data-slot="radio-group-indicator" />
+        </Show>
         <div role="presentation" data-slot="radio-group-items">
           <For each={local.options}>
             {(option) => (

@@ -123,6 +123,20 @@
     color: var(--text-strong);
   }
 
+  &[data-indicator="false"] {
+    [data-slot="radio-group-item-input"][data-checked] + [data-slot="radio-group-item-label"] [data-slot="radio-group-item-control"] {
+      background: var(--button-secondary-base);
+      box-shadow: var(--shadow-xs-border-base);
+    }
+
+    [data-slot="radio-group-wrapper"]:has([data-slot="radio-group-item-input"]:focus-visible)
+      [data-slot="radio-group-item-input"][data-checked]
+      + [data-slot="radio-group-item-label"]
+      [data-slot="radio-group-item-control"] {
+      box-shadow: var(--shadow-xs-border-focus);
+    }
+  }
+
   /* Hover state: match the inset background (adds subtle density) */
   [data-slot="radio-group-item-input"]:not([data-checked], [data-disabled])
     + [data-slot="radio-group-item-label"]:hover

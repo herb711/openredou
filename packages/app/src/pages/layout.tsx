@@ -1456,10 +1456,15 @@ export default function Layout(props: ParentProps) {
   function openProjectRules(project: LocalProject) {
     const directory = project.worktree
     const slug = base64Encode(directory)
+    const current = !!params.dir && pathKey(currentProject()?.worktree ?? "") === pathKey(directory)
+    const key = current ? `${params.dir}${params.id ? `/${params.id}` : ""}` : slug
+    const tabs = layout.tabs(key)
+
     server.projects.touch(directory)
-    void layout.tabs(slug).open("rules")
-    layout.view(slug).reviewPanel.open()
-    navigateWithSidebarReset(`/${slug}/session`)
+    void tabs.open("rules")
+    tabs.setActive("rules")
+    layout.view(key).reviewPanel.open()
+    if (!current) navigateWithSidebarReset(`/${slug}/session`)
   }
 
   const showEditProjectDialog = (project: LocalProject) => {
