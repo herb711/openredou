@@ -16,7 +16,7 @@ if errorlevel 1 (
 
 if not exist "node_modules\" (
   echo [openredou] Dependencies are missing. Running bun install...
-  bun install
+  call bun install
   if errorlevel 1 (
     echo.
     echo [openredou] bun install failed.
@@ -29,13 +29,15 @@ echo [openredou] Starting desktop app...
 echo [openredou] Keep this window open while openredou is running.
 echo.
 
-bun run dev:desktop
+call bun run dev:desktop
 set "openredou_exit=%ERRORLEVEL%"
 
-if not "%openredou_exit%"=="0" (
-  echo.
+echo.
+if "%openredou_exit%"=="0" (
+  echo [openredou] Desktop app closed.
+) else (
   echo [openredou] Launcher exited with code %openredou_exit%.
-  pause
 )
+pause
 
 exit /b %openredou_exit%
