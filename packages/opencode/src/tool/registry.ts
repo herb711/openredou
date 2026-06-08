@@ -196,12 +196,18 @@ export const layer: Layer.Layer<
           }
         }
 
+        const disabled = new Set(
+          Object.entries((yield* config.get()).tools ?? {})
+            .filter((entry) => entry[1] === false)
+            .map((entry) => entry[0]),
+        )
         const dirs = yield* config.directories()
         const matches = dirs.flatMap((dir) =>
           Glob.scanSync("{tool,tools}/*.{js,ts}", { cwd: dir, absolute: true, dot: true, symlink: true }),
         )
-        if (matches.length) yield* config.waitForDependencies()
-        for (const match of matches) {
+        const enabled = matches.filter((match) => !disabled.has(path.basename(match, path.extname(match))))
+        if (enabled.length) yield* config.waitForDependencies()
+        for (const match of enabled) {
           const namespace = path.basename(match, path.extname(match))
           // `match` is an absolute filesystem path from `Glob.scanSync(..., { absolute: true })`.
           // Import it as `file://` so Node on Windows accepts the dynamic import.
@@ -219,7 +225,6 @@ export const layer: Layer.Layer<
           }
         }
 
-        yield* config.get()
         const questionEnabled = ["app", "cli", "desktop"].includes(flags.client) || flags.enableQuestionTool
 
         const tool = yield* Effect.all({

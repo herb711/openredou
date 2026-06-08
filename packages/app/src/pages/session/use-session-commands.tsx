@@ -70,8 +70,7 @@ export const useSessionCommands = (actions: SessionCommandContext) => {
   })
   const activeFileTab = tabState.activeFileTab
   const closableTab = tabState.closableTab
-  const desktopV2 = () => platform.platform === "desktop" && settings.general.newLayoutDesigns()
-  const shown = () => (desktopV2() ? settings.general.showFileTree() : true)
+  const shown = () => (platform.platform === "desktop" ? settings.general.showFileTree() : true)
 
   const messages = () => {
     const id = params.id

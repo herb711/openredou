@@ -64,6 +64,7 @@ import { Identifier } from "@/utils/id"
 import { diffs as list } from "@/utils/diffs"
 import { Persist, persisted } from "@/utils/persist"
 import { extractPromptFromParts } from "@/utils/prompt"
+import { pathKey } from "@/utils/path-key"
 import { same } from "@/utils/same"
 import { formatServerError } from "@/utils/server-errors"
 import { useUsageExceededDialogs } from "./session/usage-exceeded-dialogs"
@@ -674,7 +675,9 @@ export default function Page() {
         todoTimer = undefined
         if (!id) return
         if (status === "idle" && !blocked) return
-        const cached = untrack(() => sync.data.todo[id] !== undefined || serverSync.data.session_todo[id] !== undefined)
+        const cached = untrack(() => serverSync.data.session_todo[id] ?? sync.data.todo[id])
+        // Empty local todo cache marks stale todos hidden after failure/abort; don't revive persisted todos on the next turn.
+        if (cached?.length === 0) return
 
         todoFrame = requestAnimationFrame(() => {
           todoFrame = undefined
@@ -1389,7 +1392,7 @@ export default function Page() {
         sync,
         serverSync,
         draft: item,
-        optimisticBusy: item.sessionDirectory === sdk.directory,
+        optimisticBusy: pathKey(item.sessionDirectory) === pathKey(sdk.directory),
       }).catch((err) => {
         setFollowup("failed", input.sessionID, input.id)
         fail(err)

@@ -14,6 +14,7 @@ import {
   ServerConnection,
   useCommand,
 } from "@opencode-ai/app"
+import { getFullVersionLabel, getUpstreamOpenCodeVersion } from "@opencode-ai/core/installation/version"
 import * as Sentry from "@sentry/solid"
 import type { AsyncStorage } from "@solid-primitives/storage"
 import { MemoryRouter } from "@solidjs/router"
@@ -147,6 +148,8 @@ const createPlatform = (): Platform => {
     platform: "desktop",
     os,
     version: pkg.version,
+    upstreamOpenCodeVersion: getUpstreamOpenCodeVersion(),
+    fullVersionLabel: getFullVersionLabel(pkg.version),
 
     async openDirectoryPickerDialog(opts) {
       const defaultPath = await wslHome()

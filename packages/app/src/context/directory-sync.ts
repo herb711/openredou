@@ -13,6 +13,7 @@ import type { Message, Part } from "@opencode-ai/sdk/v2/client"
 import { SESSION_CACHE_LIMIT, dropSessionCaches, pickSessionCacheEvictions } from "./global-sync/session-cache"
 import { diffs as list, message as clean } from "@/utils/diffs"
 import { useServerSDK } from "./server-sdk"
+import { directoryKey } from "./global-sync/utils"
 
 const SKIP_PARTS = new Set(["patch", "step-start", "step-finish"])
 
@@ -179,9 +180,9 @@ export const createDirSyncContext = (directory: string, serverSync: ReturnType<t
   type Setter = Child[1]
 
   const current = createMemo(() => serverSync.child(directory, { mcp: true }))
-  const target = (directory?: string) => {
-    if (!directory || directory === directory) return current()
-    return serverSync.child(directory)
+  const target = (targetDirectory?: string) => {
+    if (!targetDirectory || directoryKey(targetDirectory) === directoryKey(directory)) return current()
+    return serverSync.child(targetDirectory)
   }
   const absolute = (path: string) => (current()[0].path.directory + "/" + path).replace("//", "/")
   const initialMessagePageSize = 80

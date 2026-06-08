@@ -11,7 +11,7 @@ import { UninstallCommand } from "./cli/cmd/uninstall"
 import { ModelsCommand } from "./cli/cmd/models"
 import { UI } from "./cli/ui"
 import { Installation } from "./installation"
-import { InstallationVersion } from "@opencode-ai/core/installation/version"
+import { InstallationVersion, getUpstreamOpenCodeVersion } from "@opencode-ai/core/installation/version"
 import { NamedError } from "@opencode-ai/core/util/error"
 import { FormatError } from "./cli/error"
 import { ServeCommand } from "./cli/cmd/serve"
@@ -109,8 +109,12 @@ const cli = yargs(args)
     process.env.OPENCODE = "1"
     process.env.OPENCODE_PID = String(process.pid)
 
+    Log.Default.info(`OpenRedou version: ${InstallationVersion}`)
+    Log.Default.info(`Upstream OpenCode version: ${getUpstreamOpenCodeVersion()}`)
     Log.Default.info("opencode", {
       version: InstallationVersion,
+      openredou_version: InstallationVersion,
+      upstream_opencode_version: getUpstreamOpenCodeVersion(),
       args: process.argv.slice(2),
       process_role: processMetadata.processRole,
       run_id: processMetadata.runID,

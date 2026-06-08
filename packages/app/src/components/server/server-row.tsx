@@ -1,4 +1,5 @@
 import { Tooltip } from "@opencode-ai/ui/tooltip"
+import { getFullVersionLabel } from "@opencode-ai/core/installation/version"
 import { createResizeObserver } from "@solid-primitives/resize-observer"
 import {
   children,
@@ -31,6 +32,13 @@ export function ServerRow(props: ServerRowProps) {
   let nameRef: HTMLSpanElement | undefined
   let versionRef: HTMLSpanElement | undefined
   const name = createMemo(() => serverName(props.conn))
+  const versionLabel = createMemo(() => {
+    const version = props.status?.version
+    if (!version) return
+    const upstream = props.status?.upstreamOpenCodeVersion
+    if (!upstream) return `v${version}`
+    return getFullVersionLabel(version, upstream)
+  })
 
   const check = () => {
     const nameTruncated = nameRef ? nameRef.scrollWidth > nameRef.clientWidth : false
@@ -41,7 +49,7 @@ export function ServerRow(props: ServerRowProps) {
   createEffect(() => {
     name()
     props.conn.http.url
-    props.status?.version
+    versionLabel()
     queueMicrotask(check)
   })
 
@@ -54,8 +62,8 @@ export function ServerRow(props: ServerRowProps) {
   const tooltipValue = () => (
     <span class="flex items-center gap-2">
       <span>{serverName(props.conn, true)}</span>
-      <Show when={props.status?.version}>
-        <span class="text-text-invert-weak">v{props.status?.version}</span>
+      <Show when={versionLabel()}>
+        {(version) => <span class="text-text-invert-weak">{version()}</span>}
       </Show>
     </span>
   )
@@ -79,13 +87,15 @@ export function ServerRow(props: ServerRowProps) {
             <Show
               when={badge()}
               fallback={
-                <Show when={props.status?.version}>
-                  <span
-                    ref={versionRef}
-                    class={`${props.versionClass ?? "text-text-weak text-14-regular truncate"} min-w-0`}
-                  >
-                    v{props.status?.version}
-                  </span>
+                <Show when={versionLabel()}>
+                  {(version) => (
+                    <span
+                      ref={versionRef}
+                      class={`${props.versionClass ?? "text-text-weak text-14-regular truncate"} min-w-0`}
+                    >
+                      {version()}
+                    </span>
+                  )}
                 </Show>
               }
             >

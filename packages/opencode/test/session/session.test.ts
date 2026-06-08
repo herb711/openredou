@@ -6,13 +6,16 @@ import * as Log from "@opencode-ai/core/util/log"
 import { MessageV2 } from "../../src/session/message-v2"
 import { MessageID, PartID, type SessionID } from "../../src/session/schema"
 import { CrossSpawnSpawner } from "@opencode-ai/core/cross-spawn-spawner"
-import { provideInstance, tmpdirScoped } from "../fixture/fixture"
+import { provideInstance, requireInstance, tmpdirScoped } from "../fixture/fixture"
 import { testEffect } from "../lib/effect"
 import { Bus } from "@/bus"
 import { Storage } from "@/storage/storage"
 import { SyncEvent } from "@/sync"
 import { RuntimeFlags } from "@/effect/runtime-flags"
 import { BackgroundJob } from "@/background/job"
+import { Database, eq } from "@/storage/db"
+import { ProjectTable } from "@/project/project.sql"
+import { SessionTable } from "@/session/session.sql"
 
 void Log.init({ print: false })
 
@@ -213,6 +216,34 @@ describe("Session", () => {
 
       expect(created.metadata).toBeUndefined()
       expect(saved.metadata).toBeUndefined()
+    }),
+  )
+
+  it.instance("recreates the current project row before creating a session", () =>
+    Effect.gen(function* () {
+      const session = yield* SessionNs.Service
+      const instance = yield* requireInstance
+
+      yield* Effect.sync(() =>
+        Database.use((db) => db.delete(ProjectTable).where(eq(ProjectTable.id, instance.project.id)).run()),
+      )
+
+      const created = yield* Effect.acquireRelease(session.create({ title: "missing-project-row" }), (info) =>
+        session.remove(info.id).pipe(Effect.ignore),
+      )
+
+      expect(
+        Database.use((db) => db.select().from(ProjectTable).where(eq(ProjectTable.id, instance.project.id)).get()),
+      ).toMatchObject({
+        id: instance.project.id,
+        worktree: instance.project.worktree,
+      })
+      expect(
+        Database.use((db) => db.select().from(SessionTable).where(eq(SessionTable.id, created.id)).get()),
+      ).toMatchObject({
+        id: created.id,
+        project_id: instance.project.id,
+      })
     }),
   )
 })

@@ -9,6 +9,15 @@ const icons = {
     viewBox: "0 0 20 20",
     body: `<path d="M2.08333 9.58268V2.91602H8.33333L10 5.41602H17.9167V16.2493H8.75M3.75 12.0827V14.5827M3.75 14.5827V17.0827M3.75 14.5827H1.25M3.75 14.5827H6.25" stroke="currentColor" stroke-linecap="square"/>`,
   },
+  "file-tree": {
+    viewBox: "0 0 20 20",
+    body: `<path d="M18 18V5H9.5L7.5 2H2L2 18H5M18 18H5M18 18V8.5H5V18" stroke="currentColor" stroke-linecap="square"/>`,
+  },
+  "file-tree-active": {
+    viewBox: "0 0 20 20",
+    body: `<path d="M2 2L2 18H5L6.5 8.5H18V5H9.5L7.5 2H2Z" fill="currentColor" fill-opacity="0.1"/>
+<path d="M5 18H18L19.5 8.5H18M5 18H2L2 2H7.5L9.5 5H18V8.5M5 18L6.5 8.5H18" stroke="currentColor" stroke-linecap="square"/>`,
+  },
   "grid-plus": {
     viewBox: "0 0 16 16",
     body: `<path d="M13.9948 11.668H9.32812M11.6641 9.33203V13.9987M6.66667 9.33203V13.9987H2V9.33203H6.66667ZM6.66667 2V6.66667H2V2H6.66667ZM13.9948 2V6.66667H9.32812V2H13.9948Z" stroke="currentColor" stroke-miterlimit="10" stroke-linecap="square"/>`,

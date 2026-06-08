@@ -5,6 +5,7 @@ import { existsSync, mkdirSync, readFileSync, readdirSync, rmSync, statSync, wri
 import { ZipWriter, BlobWriter, BlobReader } from "@zip.js/zip.js"
 import { dirname, join } from "node:path"
 import { homedir } from "node:os"
+import { getUpstreamOpenCodeVersion } from "@opencode-ai/core/installation/version"
 
 const MAX_LOG_AGE_DAYS = 7
 const TAIL_LINES = 1000
@@ -134,6 +135,7 @@ function manifest() {
   return {
     generated: new Date().toISOString(),
     version: app.getVersion(),
+    upstreamOpenCodeVersion: getUpstreamOpenCodeVersion(),
     name: app.getName(),
     packaged: app.isPackaged,
     platform: process.platform,

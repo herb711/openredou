@@ -4,6 +4,7 @@ import * as Sentry from "@sentry/solid"
 import { render } from "solid-js/web"
 import { AppBaseProviders, AppInterface } from "@/app"
 import { type Platform, PlatformProvider } from "@/context/platform"
+import { getFullVersionLabel, getUpstreamOpenCodeVersion } from "@opencode-ai/core/installation/version"
 import { dict as en } from "@/i18n/en"
 import { dict as zh } from "@/i18n/zh"
 import { handleNotificationClick } from "@/utils/notification-click"
@@ -122,6 +123,8 @@ const clearAuthToken = () => {
 const platform: Platform = {
   platform: "web",
   version: pkg.version,
+  upstreamOpenCodeVersion: getUpstreamOpenCodeVersion(),
+  fullVersionLabel: getFullVersionLabel(pkg.version),
   openLink,
   back,
   forward,

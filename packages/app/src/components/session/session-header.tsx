@@ -24,6 +24,7 @@ import { useSessionLayout } from "@/pages/session/session-layout"
 import { messageAgentColor } from "@/utils/agent"
 import { decode64 } from "@/utils/base64"
 import { Persist, persisted } from "@/utils/persist"
+import { projectForDirectory } from "@/pages/layout/helpers"
 import { StatusPopover, StatusPopoverV2 } from "../status-popover"
 import { IconButtonV2 } from "@opencode-ai/ui/v2/components/icon-button-v2.jsx"
 import { Icon as IconV2 } from "@opencode-ai/ui/v2/components/icon.jsx"
@@ -144,9 +145,7 @@ export function SessionHeader() {
 
   const projectDirectory = createMemo(() => decode64(params.dir) ?? "")
   const project = createMemo(() => {
-    const directory = projectDirectory()
-    if (!directory) return
-    return layout.projects.list().find((p) => p.worktree === directory || p.sandboxes?.includes(directory))
+    return projectForDirectory(projectDirectory(), layout.projects.list())
   })
   const name = createMemo(() => {
     const current = project()
@@ -155,11 +154,12 @@ export function SessionHeader() {
   })
   const hotkey = createMemo(() => command.keybind("file.open"))
   const os = createMemo(() => detectOS(platform))
+  const desktop = createMemo(() => platform.platform === "desktop")
   const isDesktopV2 = createMemo(() => platform.platform === "desktop" && settings.general.newLayoutDesigns())
-  const search = createMemo(() => (isDesktopV2() ? settings.general.showSearch() : true))
-  const tree = createMemo(() => (isDesktopV2() ? settings.general.showFileTree() : true))
+  const search = createMemo(() => (desktop() ? settings.general.showSearch() : true))
+  const tree = createMemo(() => (desktop() ? settings.general.showFileTree() : true))
   const term = createMemo(() => (isDesktopV2() ? settings.general.showTerminal() : true))
-  const status = createMemo(() => (isDesktopV2() ? settings.general.showStatus() : true))
+  const status = createMemo(() => (desktop() ? settings.general.showStatus() : true))
 
   const [exists, setExists] = createStore<Partial<Record<OpenApp, boolean>>>({
     finder: true,
@@ -240,6 +240,11 @@ export function SessionHeader() {
     reviewKeybind: command.keybind("review.toggle"),
     reviewOpened: view().reviewPanel.opened(),
     onReviewToggle: () => view().reviewPanel.toggle(),
+    fileTreeVisible: tree(),
+    fileTreeLabel: language.t("command.fileTree.toggle"),
+    fileTreeKeybind: command.keybind("fileTree.toggle"),
+    fileTreeOpened: layout.fileTree.opened(),
+    onFileTreeToggle: () => layout.fileTree.toggle(),
   }))
 
   const selectApp = (app: OpenApp) => {
@@ -322,7 +327,7 @@ export function SessionHeader() {
         {(mount) => (
           <Portal mount={mount()}>
             <Show
-              when={isDesktopV2}
+              when={isDesktopV2()}
               fallback={
                 <div class="flex items-center gap-2">
                   <Show when={projectDirectory()}>
@@ -526,6 +531,11 @@ type SessionHeaderV2ActionsState = {
   reviewKeybind: string
   reviewOpened: boolean
   onReviewToggle: () => void
+  fileTreeVisible: boolean
+  fileTreeLabel: string
+  fileTreeKeybind: string
+  fileTreeOpened: boolean
+  onFileTreeToggle: () => void
 }
 
 function SessionHeaderV2Actions(props: { state: SessionHeaderV2ActionsState }) {
@@ -550,6 +560,22 @@ function SessionHeaderV2Actions(props: { state: SessionHeaderV2ActionsState }) {
           icon={<IconV2 name="sidebar-right" />}
         />
       </TooltipKeybind>
+      <Show when={props.state.fileTreeVisible}>
+        <TooltipKeybind title={props.state.fileTreeLabel} keybind={props.state.fileTreeKeybind}>
+          <IconButtonV2
+            type="button"
+            variant="ghost-muted"
+            size="large"
+            class="!w-9 shrink-0"
+            state={props.state.fileTreeOpened ? "pressed" : undefined}
+            onClick={props.state.onFileTreeToggle}
+            aria-label={props.state.fileTreeLabel}
+            aria-expanded={props.state.fileTreeOpened}
+            aria-controls="file-tree-panel"
+            icon={<IconV2 name={props.state.fileTreeOpened ? "file-tree-active" : "file-tree"} />}
+          />
+        </TooltipKeybind>
+      </Show>
     </div>
   )
 }

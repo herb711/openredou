@@ -99,6 +99,11 @@ export const UpdateInput = Schema.Struct({
 })
 export type UpdateInput = Types.DeepMutable<Schema.Schema.Type<typeof UpdateInput>>
 
+export const DeleteInput = Schema.Struct({
+  projectID: ProjectID,
+})
+export type DeleteInput = Types.DeepMutable<Schema.Schema.Type<typeof DeleteInput>>
+
 export const UpdatePayload = Schema.Struct({
   name: Schema.optional(Schema.String),
   icon: Schema.optional(ProjectIcon),
@@ -126,6 +131,7 @@ export interface Interface {
   readonly list: () => Effect.Effect<Info[]>
   readonly get: (id: ProjectID) => Effect.Effect<Info | undefined>
   readonly update: (input: UpdateInput) => Effect.Effect<Info, NotFoundError>
+  readonly delete: (input: DeleteInput) => Effect.Effect<void, NotFoundError>
   readonly initGit: (input: { directory: string; project: Info }) => Effect.Effect<Info>
   readonly setInitialized: (id: ProjectID) => Effect.Effect<void>
   readonly sandboxes: (id: ProjectID) => Effect.Effect<string[]>
@@ -383,6 +389,25 @@ export const layer = Layer.effect(
       return data
     })
 
+    const deleteProject = Effect.fn("Project.delete")(function* (input: DeleteInput) {
+      const row = yield* db((d) =>
+        d.select({ id: ProjectTable.id }).from(ProjectTable).where(eq(ProjectTable.id, input.projectID)).get(),
+      )
+      if (!row) return yield* new NotFoundError({ projectID: input.projectID })
+
+      yield* Effect.sync(() =>
+        Database.transaction(
+          (d) => {
+            d.delete(SessionTable).where(eq(SessionTable.project_id, input.projectID)).run()
+            d.delete(PermissionTable).where(eq(PermissionTable.project_id, input.projectID)).run()
+            d.delete(WorkspaceTable).where(eq(WorkspaceTable.project_id, input.projectID)).run()
+            d.delete(ProjectTable).where(eq(ProjectTable.id, input.projectID)).run()
+          },
+          { behavior: "immediate" },
+        ),
+      )
+    })
+
     const initGit = Effect.fn("Project.initGit")(function* (input: { directory: string; project: Info }) {
       if (input.project.vcs === "git") return input.project
       if (!(yield* Effect.sync(() => which("git")))) throw new Error("Git is not installed")
@@ -470,6 +495,7 @@ export const layer = Layer.effect(
       list,
       get,
       update,
+      delete: deleteProject,
       initGit,
       setInitialized,
       sandboxes,

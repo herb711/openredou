@@ -14,6 +14,7 @@ import { type ContextItem, type ImageAttachmentPart, type Prompt, usePrompt } fr
 import { useSDK } from "@/context/sdk"
 import { useSync } from "@/context/sync"
 import { Identifier } from "@/utils/id"
+import { pathKey } from "@/utils/path-key"
 import { Worktree as WorktreeState } from "@/utils/worktree"
 import { buildRequestParts } from "./build-request-parts"
 import { setCursorPosition } from "./editor-dom"
@@ -49,6 +50,8 @@ type FollowupSendInput = {
 const draftText = (prompt: Prompt) => prompt.map((part) => ("content" in part ? part.content : "")).join("")
 
 const draftImages = (prompt: Prompt) => prompt.filter((part): part is ImageAttachmentPart => part.type === "image")
+
+const sameDirectory = (a: string, b: string) => pathKey(a) === pathKey(b)
 
 export async function sendFollowupDraft(input: FollowupSendInput) {
   const text = draftText(input.draft.prompt)
@@ -349,7 +352,7 @@ export function createPromptSubmit(input: PromptSubmitInput) {
         sessionDirectory = worktreeSelection
       }
 
-      if (sessionDirectory !== projectDirectory) {
+      if (!sameDirectory(sessionDirectory, projectDirectory)) {
         client = sdk.createClient({
           directory: sessionDirectory,
           throwOnError: true,
@@ -503,13 +506,13 @@ export function createPromptSubmit(input: PromptSubmitInput) {
       const worktree = WorktreeState.get(sessionDirectory)
       if (!worktree || worktree.status !== "pending") return true
 
-      if (sessionDirectory === projectDirectory) {
+      if (sameDirectory(sessionDirectory, projectDirectory)) {
         sync.set("session_status", session.id, { type: "busy" })
       }
 
       const controller = new AbortController()
       const cleanup = () => {
-        if (sessionDirectory === projectDirectory) {
+        if (sameDirectory(sessionDirectory, projectDirectory)) {
           sync.set("session_status", session.id, { type: "idle" })
         }
         removeOptimisticMessage()
@@ -560,11 +563,11 @@ export function createPromptSubmit(input: PromptSubmitInput) {
       serverSync,
       draft,
       messageID,
-      optimisticBusy: sessionDirectory === projectDirectory,
+      optimisticBusy: sameDirectory(sessionDirectory, projectDirectory),
       before: waitForWorktree,
     }).catch((err) => {
       pending.delete(session.id)
-      if (sessionDirectory === projectDirectory) {
+      if (sameDirectory(sessionDirectory, projectDirectory)) {
         sync.set("session_status", session.id, { type: "idle" })
       }
       showToast({

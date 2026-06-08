@@ -189,6 +189,12 @@ export function createTuiPluginApi(opts: Opts = {}): HostPluginApi {
       get version() {
         return opts.app?.version ?? "0.0.0-test"
       },
+      get upstreamOpenCodeVersion() {
+        return opts.app?.upstreamOpenCodeVersion ?? "0.0.0-upstream-test"
+      },
+      get fullVersionLabel() {
+        return opts.app?.fullVersionLabel ?? "OpenRedou v0.0.0-test · OpenCode Core 0.0.0-upstream-test"
+      },
     },
     attention: {
       async notify(input) {

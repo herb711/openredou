@@ -14,6 +14,8 @@ import {
   errorMessage,
   hasProjectPermissions,
   latestRootSession,
+  projectForDirectory,
+  projectForSession,
 } from "./helpers"
 import { pathKey } from "@/utils/path-key"
 
@@ -119,6 +121,36 @@ describe("layout workspace helpers", () => {
   test("keeps local first while preserving known order", () => {
     const result = effectiveWorkspaceOrder("/root", ["/root", "/b", "/c"], ["/root", "/c", "/a", "/b"])
     expect(result).toEqual(["/root", "/c", "/b"])
+  })
+
+  test("prefers an explicitly opened project directory over a sandbox owner", () => {
+    const projects = [
+      { id: "shared", worktree: "/work/openredou", sandboxes: ["/work/openredou-main"] },
+      { id: "shared", worktree: "/work/openredou-main", sandboxes: ["/work/openredou-main"] },
+    ]
+
+    expect(projectForDirectory("/work/openredou-main", projects)?.worktree).toBe("/work/openredou-main")
+  })
+
+  test("falls back to the sandbox owner when the directory is not opened directly", () => {
+    const projects = [{ id: "shared", worktree: "/work/openredou", sandboxes: ["/work/openredou-main"] }]
+
+    expect(projectForDirectory("/work/openredou-main", projects)?.worktree).toBe("/work/openredou")
+  })
+
+  test("prefers a session directory match before the shared project id", () => {
+    const projects = [
+      { id: "shared", worktree: "/work/openredou", sandboxes: ["/work/openredou-main"] },
+      { id: "shared", worktree: "/work/openredou-main", sandboxes: ["/work/openredou-main"] },
+    ]
+
+    expect(
+      projectForSession(
+        session({ id: "session", directory: "/work/openredou-main", projectID: "shared" }),
+        projects,
+        new Map([["shared", projects[0]]]),
+      )?.worktree,
+    ).toBe("/work/openredou-main")
   })
 
   test("finds the latest root session across workspaces", () => {

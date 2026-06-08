@@ -3994,6 +3994,7 @@ export type GlobalHealthResponses = {
   200: {
     healthy: true
     version: string
+    upstreamOpenCodeVersion: string
   }
 }
 
@@ -5520,6 +5521,40 @@ export type ProjectInitGitResponses = {
 
 export type ProjectInitGitResponse = ProjectInitGitResponses[keyof ProjectInitGitResponses]
 
+export type ProjectDeleteData = {
+  body?: never
+  path: {
+    projectID: string
+  }
+  query?: {
+    directory?: string
+    workspace?: string
+  }
+  url: "/project/{projectID}"
+}
+
+export type ProjectDeleteErrors = {
+  /**
+   * BadRequest | InvalidRequestError
+   */
+  400: EffectHttpApiErrorBadRequest | InvalidRequestError
+  /**
+   * ProjectNotFoundError
+   */
+  404: ProjectNotFoundError
+}
+
+export type ProjectDeleteError = ProjectDeleteErrors[keyof ProjectDeleteErrors]
+
+export type ProjectDeleteResponses = {
+  /**
+   * Project deleted
+   */
+  200: boolean
+}
+
+export type ProjectDeleteResponse = ProjectDeleteResponses[keyof ProjectDeleteResponses]
+
 export type ProjectUpdateData = {
   body?: {
     name?: string
@@ -6357,7 +6392,7 @@ export type SessionUpdateData = {
     }
     permission?: PermissionRuleset
     time?: {
-      archived?: number
+      archived?: number | null
     }
   }
   path: {

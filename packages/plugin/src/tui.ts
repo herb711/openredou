@@ -426,6 +426,8 @@ type TuiConfigView = Pick<PluginConfig, "$schema" | "theme" | "plugin"> &
 
 export type TuiApp = {
   readonly version: string
+  readonly upstreamOpenCodeVersion: string
+  readonly fullVersionLabel: string
 }
 
 type Frozen<Value> = Value extends (...args: never[]) => unknown

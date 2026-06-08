@@ -12,6 +12,7 @@ import { decode64 } from "@/utils/base64"
 import { same } from "@/utils/same"
 import { createScrollPersistence, type SessionScroll } from "./layout-scroll"
 import { createPathHelpers } from "./file/path"
+import { pathKey } from "@/utils/path-key"
 
 const AVATAR_COLOR_KEYS = ["pink", "mint", "orange", "purple", "cyan", "lime"] as const
 const DEFAULT_SIDEBAR_WIDTH = 344
@@ -397,65 +398,16 @@ export const { use: useLayout, provider: LayoutProvider } = createSimpleContext(
       // Without this, different subdirectories of the same git repo would share the same
       // icon from the database instead of using their individual overrides.
       const base = { ...metadata, ...project }
+      const sandboxes =
+        metadata?.worktree && pathKey(metadata.worktree) !== pathKey(project.worktree)
+          ? []
+          : base.sandboxes?.filter((sandbox) => pathKey(sandbox) !== pathKey(base.worktree))
+      const next = sandboxes ? { ...base, sandboxes } : base
       if (childStore.icon) {
-        return { ...base, icon: { ...base.icon, override: childStore.icon } }
+        return { ...next, icon: { ...next.icon, override: childStore.icon } }
       }
-      return base
+      return next
     }
-
-    const roots = createMemo(() => {
-      const map = new Map<string, string>()
-      for (const project of serverSync.data.project) {
-        const sandboxes = project.sandboxes ?? []
-        for (const sandbox of sandboxes) {
-          map.set(sandbox, project.worktree)
-        }
-      }
-      return map
-    })
-
-    const rootFor = (directory: string) => {
-      const map = roots()
-      if (map.size === 0) return directory
-
-      const visited = new Set<string>()
-      const chain = [directory]
-
-      while (chain.length) {
-        const current = chain[chain.length - 1]
-        if (!current) return directory
-
-        const next = map.get(current)
-        if (!next) return current
-
-        if (visited.has(next)) return directory
-        visited.add(next)
-        chain.push(next)
-      }
-
-      return directory
-    }
-
-    createEffect(() => {
-      const projects = server.projects.list()
-      const seen = new Set(projects.map((project) => project.worktree))
-
-      batch(() => {
-        for (const project of projects) {
-          const root = rootFor(project.worktree)
-          if (root === project.worktree) continue
-
-          server.projects.close(project.worktree)
-
-          if (!seen.has(root)) {
-            server.projects.open(root)
-            seen.add(root)
-          }
-
-          if (project.expanded) server.projects.expand(root)
-        }
-      })
-    })
 
     const enriched = createMemo(() => server.projects.list().map(enrich))
     const list = createMemo(() => {
@@ -559,10 +511,9 @@ export const { use: useLayout, provider: LayoutProvider } = createSimpleContext(
       projects: {
         list,
         open(directory: string) {
-          const root = rootFor(directory)
-          if (server.projects.list().find((x) => x.worktree === root)) return
-          void serverSync.project.loadSessions(root)
-          server.projects.open(root)
+          if (server.projects.list().find((x) => pathKey(x.worktree) === pathKey(directory))) return
+          void serverSync.project.loadSessions(directory)
+          server.projects.open(directory)
         },
         close(directory: string) {
           server.projects.close(directory)

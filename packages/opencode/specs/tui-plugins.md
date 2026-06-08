@@ -184,7 +184,7 @@ npm plugins can declare a version compatibility range in `package.json` using th
 }
 ```
 
-- The value is a semver range checked against the running OpenCode version.
+- The value is a semver range checked against the running OpenRedou version.
 - If the range is not satisfied, the plugin is skipped with a warning and a session error.
 - If `engines.opencode` is absent, no check is performed (backward compatible).
 - File plugins are never checked; only npm package plugins are validated.
@@ -227,6 +227,8 @@ That is what makes local config-scoped plugins able to import `@opencode-ai/plug
 Top-level API groups exposed to `tui(api, options, meta)`:
 
 - `api.app.version`
+- `api.app.upstreamOpenCodeVersion`
+- `api.app.fullVersionLabel`
 - `api.attention.notify(input)`
 - `api.keys.formatSequence(parts)`, `formatBindings(bindings)`
 - `api.keymap`

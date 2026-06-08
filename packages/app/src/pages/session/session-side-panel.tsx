@@ -59,8 +59,7 @@ export function SessionSidePanel(props: {
   const { sessionKey, tabs, view, params } = useSessionLayout()
 
   const isDesktop = createMediaQuery("(min-width: 768px)")
-  const desktopV2 = () => platform.platform === "desktop" && settings.general.newLayoutDesigns()
-  const shown = createMemo(() => (desktopV2() ? settings.general.showFileTree() : true))
+  const shown = createMemo(() => (platform.platform === "desktop" ? settings.general.showFileTree() : true))
 
   const reviewOpen = createMemo(() => isDesktop() && view().reviewPanel.opened())
   const fileOpen = createMemo(() => isDesktop() && shown() && layout.fileTree.opened())

@@ -15,7 +15,11 @@ import { DialogSelect, type DialogSelectOption as SelectOption } from "../ui/dia
 import { Prompt } from "../component/prompt"
 import { Slot as HostSlot } from "./slots"
 import type { useToast } from "../ui/toast"
-import { InstallationVersion } from "@opencode-ai/core/installation/version"
+import {
+  InstallationVersion,
+  getFullVersionLabel,
+  getUpstreamOpenCodeVersion,
+} from "@opencode-ai/core/installation/version"
 import * as Keymap from "../keymap"
 import { createCommandShim } from "./command-shim"
 
@@ -194,6 +198,12 @@ function appApi(): TuiPluginApi["app"] {
   return {
     get version() {
       return InstallationVersion
+    },
+    get upstreamOpenCodeVersion() {
+      return getUpstreamOpenCodeVersion()
+    },
+    get fullVersionLabel() {
+      return getFullVersionLabel()
     },
   }
 }

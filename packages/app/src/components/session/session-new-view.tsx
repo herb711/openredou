@@ -6,6 +6,7 @@ import { useLanguage } from "@/context/language"
 import { Icon } from "@opencode-ai/ui/icon"
 import { Mark } from "@opencode-ai/ui/logo"
 import { getDirectory, getFilename } from "@opencode-ai/core/util/path"
+import { pathKey } from "@/utils/path-key"
 
 const MAIN_WORKTREE = "main"
 const CREATE_WORKTREE = "create"
@@ -20,18 +21,27 @@ export function NewSessionView(props: NewSessionViewProps) {
   const sdk = useSDK()
   const language = useLanguage()
 
-  const sandboxes = createMemo(() => sync.project?.sandboxes ?? [])
-  const options = createMemo(() => [MAIN_WORKTREE, ...sandboxes(), CREATE_WORKTREE])
+  const currentDirectory = createMemo(() => sdk.directory)
+  const project = createMemo(() => {
+    const current = pathKey(currentDirectory())
+    const info = sync.project
+    if (!info) return
+    if (pathKey(info.worktree) === current) return info
+    if (info.sandboxes?.some((sandbox) => pathKey(sandbox) === current)) return info
+  })
+  const sandboxes = createMemo(() => project()?.sandboxes ?? [])
   const current = createMemo(() => {
     const selection = props.worktree
-    if (options().includes(selection)) return selection
+    if (selection === MAIN_WORKTREE || selection === CREATE_WORKTREE) return selection
+    const sandbox = sandboxes().find((item) => pathKey(item) === pathKey(selection))
+    if (sandbox) return sandbox
     return MAIN_WORKTREE
   })
-  const projectRoot = createMemo(() => sync.project?.worktree ?? sdk.directory)
+  const projectRoot = createMemo(() => project()?.worktree ?? currentDirectory())
   const isWorktree = createMemo(() => {
-    const project = sync.project
-    if (!project) return false
-    return sdk.directory !== project.worktree
+    const current = project()
+    if (!current) return false
+    return pathKey(currentDirectory()) !== pathKey(current.worktree)
   })
 
   const label = (value: string) => {
@@ -69,7 +79,7 @@ export function NewSessionView(props: NewSessionViewProps) {
                 {label(current())}
               </div>
             </div>
-            <Show when={sync.project}>
+            <Show when={project()}>
               {(project) => (
                 <div class="flex items-start justify-center gap-3 min-h-5">
                   <div class="text-12-medium text-text-weak leading-5 min-w-0 max-w-160 break-words text-center">

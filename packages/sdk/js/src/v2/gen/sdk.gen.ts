@@ -121,6 +121,8 @@ import type {
   PermissionRuleset,
   ProjectCurrentErrors,
   ProjectCurrentResponses,
+  ProjectDeleteErrors,
+  ProjectDeleteResponses,
   ProjectInitGitErrors,
   ProjectInitGitResponses,
   ProjectListErrors,
@@ -2368,6 +2370,38 @@ export class Project extends HeyApiClient {
   }
 
   /**
+   * Delete project
+   *
+   * Delete a project from OpenCode history and remove associated sessions, permissions, and workspaces.
+   */
+  public delete<ThrowOnError extends boolean = false>(
+    parameters: {
+      projectID: string
+      directory?: string
+      workspace?: string
+    },
+    options?: Options<never, ThrowOnError>,
+  ) {
+    const params = buildClientParams(
+      [parameters],
+      [
+        {
+          args: [
+            { in: "path", key: "projectID" },
+            { in: "query", key: "directory" },
+            { in: "query", key: "workspace" },
+          ],
+        },
+      ],
+    )
+    return (options?.client ?? this.client).delete<ProjectDeleteResponses, ProjectDeleteErrors, ThrowOnError>({
+      url: "/project/{projectID}",
+      ...options,
+      ...params,
+    })
+  }
+
+  /**
    * Update project
    *
    * Update project properties such as name, icon, and commands.
@@ -3364,7 +3398,7 @@ export class Session2 extends HeyApiClient {
       }
       permission?: PermissionRuleset
       time?: {
-        archived?: number
+        archived?: number | null
       }
     },
     options?: Options<never, ThrowOnError>,

@@ -1,7 +1,7 @@
 {
   "name": "@opencode-ai/desktop",
   "private": true,
-  "version": "1.15.14",
+  "version": "0.2.1",
   "type": "module",
   "license": "MIT",
   "homepage": "https://opencode.ai",
@@ -38,6 +38,7 @@
     "@actions/artifact": "4.0.0",
     "@lydell/node-pty": "catalog:",
     "@opencode-ai/app": "workspace:*",
+    "@opencode-ai/core": "workspace:*",
     "@opencode-ai/ui": "workspace:*",
     "@sentry/solid": "catalog:",
     "@sentry/vite-plugin": "catalog:",

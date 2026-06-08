@@ -137,6 +137,17 @@ function matchLegacyOpenApi(input: Record<string, unknown>) {
             : operation.requestBody.content?.["application/json"]?.schema?.properties
           if (properties?.id) properties.id = { anyOf: [properties.id, { type: "null" }] }
         }
+        if (path === "/session/{sessionID}" && method === "patch") {
+          const ref = operation.requestBody.content?.["application/json"]?.schema?.$ref?.replace(
+            "#/components/schemas/",
+            "",
+          )
+          const properties = ref
+            ? spec.components?.schemas?.[ref]?.properties
+            : operation.requestBody.content?.["application/json"]?.schema?.properties
+          if (properties?.time?.properties?.archived)
+            properties.time.properties.archived = nullable(properties.time.properties.archived)
+        }
       }
       for (const response of Object.values(operation.responses ?? {})) {
         for (const content of Object.values(response.content ?? {})) {

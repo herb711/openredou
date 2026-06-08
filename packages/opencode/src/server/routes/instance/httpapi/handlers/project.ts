@@ -5,7 +5,7 @@ import { Effect } from "effect"
 import { HttpApiBuilder } from "effect/unstable/httpapi"
 import { InstanceHttpApi } from "../api"
 import { ProjectNotFoundError } from "../errors"
-import { markInstanceForReload } from "../lifecycle"
+import { markInstanceForDisposal, markInstanceForReload } from "../lifecycle"
 
 export const projectHandlers = HttpApiBuilder.group(InstanceHttpApi, "project", (handlers) =>
   Effect.gen(function* () {
@@ -48,6 +48,27 @@ export const projectHandlers = HttpApiBuilder.group(InstanceHttpApi, "project", 
       )
     })
 
-    return handlers.handle("list", list).handle("current", current).handle("initGit", initGit).handle("update", update)
+    const remove = Effect.fn("ProjectHttpApi.remove")(function* (ctx: { params: { projectID: ProjectID } }) {
+      const instance = yield* InstanceState.context
+      yield* svc.delete({ projectID: ctx.params.projectID }).pipe(
+        Effect.catchTag("Project.NotFoundError", (error) =>
+          Effect.fail(
+            new ProjectNotFoundError({
+              projectID: error.projectID,
+              message: `Project not found: ${error.projectID}`,
+            }),
+          ),
+        ),
+      )
+      if (instance.project.id === ctx.params.projectID) yield* markInstanceForDisposal(instance)
+      return true
+    })
+
+    return handlers
+      .handle("list", list)
+      .handle("current", current)
+      .handle("initGit", initGit)
+      .handle("update", update)
+      .handle("remove", remove)
   }),
 )

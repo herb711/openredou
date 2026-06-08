@@ -18,6 +18,7 @@ import { useSessionLayout } from "@/pages/session/session-layout"
 import { createSessionTabs } from "@/pages/session/helpers"
 import { decode64 } from "@/utils/base64"
 import { getRelativeTime } from "@/utils/time"
+import { projectForDirectory } from "@/pages/layout/helpers"
 
 type EntryType = "command" | "file" | "session"
 
@@ -279,9 +280,7 @@ export function DialogSelectFile(props: { mode?: DialogSelectFileMode; onOpenFil
 
   const projectDirectory = createMemo(() => decode64(params.dir) ?? "")
   const project = createMemo(() => {
-    const directory = projectDirectory()
-    if (!directory) return
-    return layout.projects.list().find((p) => p.worktree === directory || p.sandboxes?.includes(directory))
+    return projectForDirectory(projectDirectory(), layout.projects.list())
   })
   const workspaces = createMemo(() => {
     const directory = projectDirectory()

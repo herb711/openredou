@@ -34,21 +34,25 @@ import { ProviderID, ModelID } from "@/provider/schema"
 import { ToolJsonSchema } from "@/tool/json-schema"
 import { MessageID, SessionID } from "@/session/schema"
 import { RuntimeFlags } from "@/effect/runtime-flags"
+import { Config } from "@/config/config"
 
 const node = CrossSpawnSpawner.defaultLayer
-const configLayer = TestConfig.layer({
-  directories: () => InstanceState.directory.pipe(Effect.map((dir) => [path.join(dir, ".opencode")])),
-})
+const configLayer = (overrides: Partial<Config.Interface> = {}) =>
+  TestConfig.layer({
+    directories: () => InstanceState.directory.pipe(Effect.map((dir) => [path.join(dir, ".opencode")])),
+    ...overrides,
+  })
 
 type RegistryLayerOptions = {
   flags?: Partial<RuntimeFlags.Info>
   plugin?: Layer.Layer<Plugin.Service>
+  config?: Layer.Layer<Config.Service>
 }
 
 const registryLayer = (opts: RegistryLayerOptions = {}) =>
   ToolRegistry.layer
     .pipe(
-      Layer.provide(configLayer),
+      Layer.provide(opts.config ?? configLayer()),
       Layer.provide(opts.plugin ?? Plugin.defaultLayer),
       Layer.provide(Question.defaultLayer),
       Layer.provide(Todo.defaultLayer),
@@ -101,6 +105,17 @@ const scout = testEffect(
 )
 const withBrokenPlugin = testEffect(
   Layer.mergeAll(registryLayer({ plugin: brokenPluginLayer }), node, Agent.defaultLayer),
+)
+const withDisabledCustomTool = testEffect(
+  Layer.mergeAll(
+    registryLayer({
+      config: configLayer({
+        get: () => Effect.succeed({ tools: { disabled: false } }),
+      }),
+    }),
+    node,
+    Agent.defaultLayer,
+  ),
 )
 
 afterEach(async () => {
@@ -178,6 +193,32 @@ describe("tool.registry", () => {
       const registry = yield* ToolRegistry.Service
       const ids = yield* registry.ids()
       expect(ids).toContain("hello")
+    }),
+  )
+
+  withDisabledCustomTool.instance("does not import disabled custom tool files", () =>
+    Effect.gen(function* () {
+      const test = yield* TestInstance
+      const tool = path.join(test.directory, ".opencode", "tool")
+      yield* Effect.promise(() => fs.mkdir(tool, { recursive: true }))
+      yield* Effect.promise(() =>
+        Bun.write(
+          path.join(tool, "disabled.ts"),
+          [
+            "throw new Error('disabled custom tool was imported')",
+            "export default {",
+            "  description: 'disabled tool',",
+            "  args: {},",
+            "  execute: async () => 'nope',",
+            "}",
+            "",
+          ].join("\n"),
+        ),
+      )
+
+      const registry = yield* ToolRegistry.Service
+      const ids = yield* registry.ids()
+      expect(ids).not.toContain("disabled")
     }),
   )
 

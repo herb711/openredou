@@ -14,6 +14,7 @@ import { eq } from "drizzle-orm"
 import { and } from "drizzle-orm"
 import { gte } from "drizzle-orm"
 import { isNull } from "drizzle-orm"
+import { isNotNull } from "drizzle-orm"
 import { desc } from "drizzle-orm"
 import { like } from "drizzle-orm"
 import { inArray } from "drizzle-orm"
@@ -474,7 +475,7 @@ export interface Interface {
   readonly touch: (sessionID: SessionID) => Effect.Effect<void>
   readonly get: (id: SessionID) => Effect.Effect<Info, NotFound>
   readonly setTitle: (input: { sessionID: SessionID; title: string }) => Effect.Effect<void>
-  readonly setArchived: (input: { sessionID: SessionID; time?: number }) => Effect.Effect<void>
+  readonly setArchived: (input: { sessionID: SessionID; time?: number | null }) => Effect.Effect<void>
   readonly setMetadata: (input: typeof SetMetadataInput.Type) => Effect.Effect<void>
   readonly setPermission: (input: { sessionID: SessionID; permission: Permission.Ruleset }) => Effect.Effect<void>
   readonly setRevert: (input: {
@@ -569,6 +570,26 @@ export const layer: Layer.Layer<
       }
       log.info("created", result)
 
+      yield* db((d) =>
+        d
+          .insert(ProjectTable)
+          .values({
+            id: ctx.project.id,
+            worktree: ctx.project.worktree,
+            vcs: ctx.project.vcs ?? null,
+            name: ctx.project.name,
+            icon_url: ctx.project.icon?.url,
+            icon_url_override: ctx.project.icon?.override,
+            icon_color: ctx.project.icon?.color,
+            time_created: ctx.project.time.created,
+            time_updated: Date.now(),
+            time_initialized: ctx.project.time.initialized,
+            sandboxes: ctx.project.sandboxes,
+            commands: ctx.project.commands,
+          })
+          .onConflictDoNothing()
+          .run(),
+      )
       yield* sync.run(Event.Created, { sessionID: result.id, info: result })
 
       if (!flags.experimentalWorkspaces) {
@@ -746,7 +767,10 @@ export const layer: Layer.Layer<
       yield* patch(input.sessionID, { title: input.title })
     })
 
-    const setArchived = Effect.fn("Session.setArchived")(function* (input: { sessionID: SessionID; time?: number }) {
+    const setArchived = Effect.fn("Session.setArchived")(function* (input: {
+      sessionID: SessionID
+      time?: number | null
+    }) {
       yield* patch(input.sessionID, { time: { archived: input.time } })
     })
 
@@ -988,6 +1012,9 @@ export function* listGlobal(input?: {
   }
   if (input?.search) {
     conditions.push(like(SessionTable.title, `%${input.search}%`))
+  }
+  if (input?.archived) {
+    conditions.push(isNotNull(SessionTable.time_archived))
   }
   if (!input?.archived) {
     conditions.push(isNull(SessionTable.time_archived))

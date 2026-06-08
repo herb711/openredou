@@ -38,6 +38,7 @@ import {
 import { migrate } from "./migrate"
 import { checkUpdate, checkForUpdates, installUpdate, setupAutoUpdater } from "./updater"
 import { Deferred, Effect, Fiber } from "effect"
+import { getUpstreamOpenCodeVersion } from "@opencode-ai/core/installation/version"
 
 const APP_NAMES: Record<string, string> = {
   dev: "OpenRedou Dev",
@@ -151,8 +152,11 @@ const main = Effect.gen(function* () {
     logger.warn("failed to load system certificates", error)
   }
 
+  logger.log(`OpenRedou version: ${app.getVersion()}`)
+  logger.log(`Upstream OpenCode version: ${getUpstreamOpenCodeVersion()}`)
   logger.log("app starting", {
-    version: app.getVersion(),
+    openRedouVersion: app.getVersion(),
+    upstreamOpenCodeVersion: getUpstreamOpenCodeVersion(),
     packaged: app.isPackaged,
     onboardingTest: Boolean(onboardingTestRoot),
   })

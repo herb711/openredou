@@ -64,18 +64,26 @@ export function getProjectAvatarSource(id?: string, icon?: { color?: string; url
   return icon?.url
 }
 
+export function projectForDirectory<T extends { worktree: string; sandboxes?: string[] }>(
+  directory: string | undefined,
+  projects: T[],
+) {
+  if (!directory) return
+  const key = pathKey(directory)
+  return (
+    projects.find((project) => pathKey(project.worktree) === key) ??
+    projects.find((project) => project.sandboxes?.some((sandbox) => pathKey(sandbox) === key))
+  )
+}
+
 export function projectForSession<T extends { id?: string; worktree: string; sandboxes?: string[] }>(
   session: Session,
   projects: T[],
   byID: Map<string, T>,
 ) {
-  const direct = byID.get(session.projectID)
+  const direct = projectForDirectory(session.directory, projects)
   if (direct) return direct
-  const directory = pathKey(session.directory)
-  return projects.find(
-    (project) =>
-      pathKey(project.worktree) === directory || project.sandboxes?.some((sandbox) => pathKey(sandbox) === directory),
-  )
+  return byID.get(session.projectID)
 }
 
 export const errorMessage = (err: unknown, fallback: string) => {

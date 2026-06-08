@@ -77,7 +77,7 @@ import { useQueries } from "@tanstack/solid-query"
 import { useQueryOptions } from "@/context/server-sync"
 import { pathKey } from "@/utils/path-key"
 import { base64Encode } from "@opencode-ai/core/util/encode"
-import { displayName } from "@/pages/layout/helpers"
+import { displayName, projectForDirectory } from "@/pages/layout/helpers"
 
 interface PromptInputProps {
   class?: string
@@ -1335,14 +1335,7 @@ export const PromptInput: Component<PromptInputProps> = (props) => {
 
   const newSession = () => props.variant === "new-session"
   const projects = createMemo(() => layout.projects.list())
-  const projectForDirectory = (directory: string | undefined) => {
-    if (!directory) return
-    const key = pathKey(directory)
-    return projects().find(
-      (project) => pathKey(project.worktree) === key || project.sandboxes?.some((sandbox) => pathKey(sandbox) === key),
-    )
-  }
-  const selectedProject = createMemo(() => projectForDirectory(sdk.directory))
+  const selectedProject = createMemo(() => projectForDirectory(sdk.directory, projects()))
   const projectResults = createMemo(() => {
     const search = picker.projectSearch.trim().toLowerCase()
     if (!search) return projects()

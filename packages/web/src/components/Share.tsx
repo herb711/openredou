@@ -8,6 +8,7 @@ import styles from "./share.module.css"
 import type { MessageV2 } from "opencode/session/message-v2"
 import type { Message } from "opencode/session/message"
 import type { Session } from "opencode/session/index"
+import { getFullVersionLabel } from "@opencode-ai/core/installation/version"
 import { Part, ProviderIcon } from "./share/part"
 
 type MessageWithParts = MessageV2.Info & { parts: MessageV2.Part[] }
@@ -307,8 +308,8 @@ export default function Share(props: {
                   <div data-slot="icon" title={props.messages.opencode_name}>
                     <IconOpencode width={16} height={16} />
                   </div>
-                  <Show when={store.info?.version} fallback="v0.0.1">
-                    <span>v{store.info?.version}</span>
+                  <Show when={store.info?.version} fallback={getFullVersionLabel("0.0.1")}>
+                    {(version) => <span>{getFullVersionLabel(version())}</span>}
                   </Show>
                 </li>
                 {Object.values(data().models).length > 0 ? (

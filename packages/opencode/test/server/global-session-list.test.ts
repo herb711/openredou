@@ -49,10 +49,11 @@ describe("session.listGlobal", () => {
   )
 
   it.instance(
-    "excludes archived sessions by default",
+    "filters archived sessions",
     () =>
       Effect.gen(function* () {
         const archived = yield* withSession({ title: "archived-session" })
+        const active = yield* withSession({ title: "active-session" })
 
         yield* SessionNs.Service.use((session) => session.setArchived({ sessionID: archived.id, time: Date.now() }))
 
@@ -61,10 +62,11 @@ describe("session.listGlobal", () => {
 
         expect(ids).not.toContain(archived.id)
 
-        const allSessions = yield* Effect.sync(() => [...SessionNs.listGlobal({ limit: 200, archived: true })])
-        const allIds = allSessions.map((session) => session.id)
+        const archivedSessions = yield* Effect.sync(() => [...SessionNs.listGlobal({ limit: 200, archived: true })])
+        const archivedIds = archivedSessions.map((session) => session.id)
 
-        expect(allIds).toContain(archived.id)
+        expect(archivedIds).toContain(archived.id)
+        expect(archivedIds).not.toContain(active.id)
       }),
     { git: true },
   )

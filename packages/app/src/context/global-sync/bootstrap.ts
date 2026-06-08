@@ -15,7 +15,7 @@ import { retry } from "@opencode-ai/core/util/retry"
 import { batch } from "solid-js"
 import { reconcile, type SetStoreFunction, type Store } from "solid-js/store"
 import type { State, VcsCache } from "./types"
-import { cmp, normalizeAgentList, normalizeProviderList } from "./utils"
+import { cmp, directoryKey, normalizeAgentList, normalizeProviderList } from "./utils"
 import { formatServerError } from "@/utils/server-errors"
 import { QueryClient, queryOptions } from "@tanstack/solid-query"
 import { loadMcpQuery } from "../server-sync"
@@ -141,7 +141,12 @@ function groupBySession<T extends { id: string; sessionID: string }>(input: T[])
 }
 
 function projectID(directory: string, projects: Project[]) {
-  return projects.find((project) => project.worktree === directory || project.sandboxes?.includes(directory))?.id
+  const key = directoryKey(directory)
+  return projects.find(
+    (project) =>
+      directoryKey(project.worktree) === key ||
+      project.sandboxes?.some((sandbox) => directoryKey(sandbox) === key),
+  )?.id
 }
 
 function mergeSession(setStore: SetStoreFunction<State>, session: Session) {
@@ -215,7 +220,8 @@ export async function bootstrapDirectory(input: {
 }) {
   const loading = input.store.status !== "complete"
   const seededProject = projectID(input.directory, input.global.project)
-  const seededPath = input.global.path.directory === input.directory ? input.global.path : undefined
+  const seededPath =
+    directoryKey(input.global.path.directory) === directoryKey(input.directory) ? input.global.path : undefined
   if (seededProject) input.setStore("project", seededProject)
   if (seededPath) input.setStore("path", seededPath)
   if (Object.keys(input.store.config).length === 0 && Object.keys(input.global.config).length > 0) {
@@ -239,9 +245,9 @@ export async function bootstrapDirectory(input: {
         (() => retry(() => input.sdk.project.current()).then((x) => input.setStore("project", x.data!.id))),
       !seededPath &&
         (() =>
-          input.queryClient.ensureQueryData(loadPathQuery(input.directory, input.sdk)).then((data) => {
+          input.queryClient.ensureQueryData(loadPathQuery(directoryKey(input.directory), input.sdk)).then((data) => {
             const next = projectID(data.directory ?? input.directory, input.global.project)
-            if (next) input.setStore("project", next)
+            if (!seededProject && next) input.setStore("project", next)
           })),
       () =>
         retry(() =>

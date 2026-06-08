@@ -1,10 +1,11 @@
-import { Component } from "solid-js"
+import { Component, Show } from "solid-js"
 import { Dialog } from "@opencode-ai/ui/dialog"
 import { Tabs } from "@opencode-ai/ui/tabs"
 import { Icon } from "@opencode-ai/ui/icon"
 import { useLanguage } from "@/context/language"
 import { usePlatform } from "@/context/platform"
 import { SettingsGeneral } from "./settings-general"
+import { SettingsArchived } from "./settings-archived"
 import { SettingsKeybinds } from "./settings-keybinds"
 import { SettingsProviders } from "./settings-providers"
 import { SettingsModels } from "./settings-models"
@@ -32,6 +33,10 @@ export const DialogSettings: Component = () => {
                       <Icon name="keyboard" />
                       {language.t("settings.tab.shortcuts")}
                     </Tabs.Trigger>
+                    <Tabs.Trigger value="archived">
+                      <Icon name="archive" />
+                      {language.t("settings.tab.archived")}
+                    </Tabs.Trigger>
                   </div>
                 </div>
 
@@ -55,8 +60,10 @@ export const DialogSettings: Component = () => {
               </div>
             </div>
             <div class="flex flex-col gap-1 pl-1 py-1 text-12-medium text-text-weak">
-              <span>{language.t("app.name.desktop")}</span>
-              <span class="text-11-regular">v{platform.version}</span>
+              <span>OpenRedou v{platform.version}</span>
+              <Show when={platform.upstreamOpenCodeVersion}>
+                {(version) => <span class="text-11-regular">Based on OpenCode v{version()}</span>}
+              </Show>
             </div>
           </div>
         </Tabs.List>
@@ -65,6 +72,9 @@ export const DialogSettings: Component = () => {
         </Tabs.Content>
         <Tabs.Content value="shortcuts" class="no-scrollbar">
           <SettingsKeybinds />
+        </Tabs.Content>
+        <Tabs.Content value="archived" class="no-scrollbar">
+          <SettingsArchived />
         </Tabs.Content>
         <Tabs.Content value="providers" class="no-scrollbar">
           <SettingsProviders />

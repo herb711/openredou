@@ -5,6 +5,8 @@ import { $ } from "bun"
 
 const output = [`version=${Script.version}`]
 const sha = process.env.GITHUB_SHA ?? (await $`git rev-parse HEAD`.text()).trim()
+const releaseTitle = `OpenRedou v${Script.version}`
+const releaseSummary = `OpenRedou ${Script.version} based on OpenCode ${Script.upstreamOpenCodeVersion}.`
 
 if (!Script.preview) {
   await $`bun script/changelog.ts --to ${sha}`.cwd(process.cwd())
@@ -14,13 +16,13 @@ if (!Script.preview) {
     .catch(() => "No notable changes")
   const dir = process.env.RUNNER_TEMP ?? "/tmp"
   const notesFile = `${dir}/opencode-release-notes.txt`
-  await Bun.write(notesFile, body)
-  await $`gh release create v${Script.version} -d --target ${sha} --title "v${Script.version}" --notes-file ${notesFile}`
+  await Bun.write(notesFile, [releaseSummary, "", body].join("\n"))
+  await $`gh release create v${Script.version} -d --target ${sha} --title ${releaseTitle} --notes-file ${notesFile}`
   const release = await $`gh release view v${Script.version} --json tagName,databaseId`.json()
   output.push(`release=${release.databaseId}`)
   output.push(`tag=${release.tagName}`)
 } else if (Script.channel === "beta") {
-  await $`gh release create v${Script.version} -d --title "v${Script.version}" --repo ${process.env.GH_REPO}`
+  await $`gh release create v${Script.version} -d --title ${releaseTitle} --notes ${releaseSummary} --repo ${process.env.GH_REPO}`
   const release =
     await $`gh release view v${Script.version} --json tagName,databaseId --repo ${process.env.GH_REPO}`.json()
   output.push(`release=${release.databaseId}`)

@@ -358,7 +358,7 @@ export const ErrorPage: Component<ErrorPageProps> = (props) => {
               <Icon name="discord" class="text-text-interactive-base" />
             </button>
           </div>
-          <Show when={platform.version}>
+          <Show when={platform.fullVersionLabel ?? platform.version}>
             {(version) => (
               <p class="text-xs text-text-weak">{language.t("error.page.version", { version: version() })}</p>
             )}

@@ -13,6 +13,7 @@ import { ProviderIcon } from "@opencode-ai/ui/provider-icon"
 import { iife } from "@opencode-ai/core/util/iife"
 import { Binary } from "@opencode-ai/core/util/binary"
 import { NamedError } from "@opencode-ai/core/util/error"
+import { getFullVersionLabel } from "@opencode-ai/core/installation/version"
 import { DateTime } from "luxon"
 import { createStore } from "solid-js/store"
 import NotFound from "../[...404]"
@@ -226,7 +227,7 @@ export default function () {
                           <div class="flex flex-col gap-2 sm:flex-row sm:gap-4 sm:items-center sm:h-8 justify-start self-stretch">
                             <div class="pl-[2.5px] pr-2 flex items-center gap-1.75 bg-surface-strong shadow-xs-border-base w-fit">
                               <Mark class="shrink-0 w-3 my-0.5" />
-                              <div class="text-12-mono text-text-base">v{info().version}</div>
+                              <div class="text-12-mono text-text-base">{getFullVersionLabel(info().version)}</div>
                             </div>
                             <div class="flex gap-4 items-center">
                               <div class="flex gap-2 items-center">

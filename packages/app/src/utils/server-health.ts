@@ -4,7 +4,7 @@ import { createSdkForServer } from "./server"
 import { Accessor, createEffect, onCleanup } from "solid-js"
 import { createStore, reconcile } from "solid-js/store"
 
-export type ServerHealth = { healthy: boolean; version?: string }
+export type ServerHealth = { healthy: boolean; version?: string; upstreamOpenCodeVersion?: string }
 
 interface CheckServerHealthOptions {
   timeoutMs?: number
@@ -89,7 +89,15 @@ export async function checkServerHealth(
       signal,
     })
       .global.health()
-      .then((x) => (x.error ? next(count, x.error) : { healthy: x.data?.healthy === true, version: x.data?.version }))
+      .then((x) => {
+        if (x.error) return next(count, x.error)
+        const upstreamOpenCodeVersion = x.data?.upstreamOpenCodeVersion
+        return {
+          healthy: x.data?.healthy === true,
+          version: x.data?.version,
+          ...(upstreamOpenCodeVersion ? { upstreamOpenCodeVersion } : {}),
+        }
+      })
       .catch((error) => next(count, error))
   return attempt(0).finally(() => timeout?.clear?.())
 }
