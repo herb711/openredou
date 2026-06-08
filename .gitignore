@@ -30,3 +30,7 @@ UPCOMING_CHANGELOG.md
 logs/
 *.bun-build
 tsconfig.tsbuildinfo
+
+# Local reference archives and notes (not part of the build)
+references/
+CONTEXT.md
