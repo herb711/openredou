@@ -116,10 +116,10 @@ jobs:
             target: aarch64-apple-darwin
             platform_flag: --mac --arm64
             bun_install_flags: --os=darwin --cpu=arm64
-          - host: windows-latest
+          - host: windows-2022
             target: aarch64-pc-windows-msvc
             platform_flag: --win --arm64
-          - host: windows-latest
+          - host: windows-2022
             target: x86_64-pc-windows-msvc
             platform_flag: --win
           - host: ubuntu-latest
