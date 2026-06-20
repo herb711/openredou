@@ -62,7 +62,9 @@ const getBase = (): Configuration => ({
     target: ["nsis"],
   },
   nsis: {
-    oneClick: true,
+    artifactName: "openredou-desktop-${os}-${arch}-setup.${ext}",
+    oneClick: false,
+    allowToChangeInstallationDirectory: true,
     perMachine: false,
     installerIcon: `resources/icons/icon.ico`,
     installerHeaderIcon: `resources/icons/icon.ico`,
