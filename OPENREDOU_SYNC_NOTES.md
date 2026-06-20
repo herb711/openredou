@@ -5,7 +5,7 @@
 ## 当前基线
 
 - 本文记录 OpenRedou 当前工作区相对 opencode 上游版本的差异、保留项和暂不迁移项。
-- 当前 OpenRedou 版本元数据：`0.2.1`。
+- 当前 OpenRedou 版本元数据：`0.2.2`。
 - 当前记录的 opencode 上游版本元数据：`1.15.13`。
 - 上游基线提交：`385cb6944 release: v1.15.13`
 - OpenRedou 主迁移提交：`3c8d4a23f feat: create openredou mainline from opencode stable`

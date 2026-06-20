@@ -37,6 +37,7 @@ const MCP_TYPE_OPTIONS: Array<{ value: McpType; label: string }> = [
 
 const statusLabels = {
   connected: "mcp.status.connected",
+  connecting: "mcp.status.connecting",
   failed: "mcp.status.failed",
   needs_auth: "mcp.status.needs_auth",
   needs_client_registration: "mcp.status.needs_client_registration",
@@ -215,6 +216,7 @@ export const SettingsMcpPanel: Component<{ directory: string }> = (props) => {
     if (!directory) return
     const client = serverSDK.createClient({ directory, throwOnError: true })
     const status = mcpStatus(name)?.status
+    if (status === "connecting") return
     setState("togglingMcp", name)
     await (
       status === "connected"
@@ -336,6 +338,7 @@ export const SettingsMcpPanel: Component<{ directory: string }> = (props) => {
                   return language.t(statusLabels[current])
                 }
                 const editable = () => isLocalMcp(item.config) || isRemoteMcp(item.config)
+                const connecting = () => status() === "connecting"
                 return (
                   <div class="flex flex-wrap items-center justify-between gap-4 py-3 border-b border-border-weak-base last:border-none">
                     <div class="flex min-w-0 flex-col gap-1">
@@ -361,14 +364,21 @@ export const SettingsMcpPanel: Component<{ directory: string }> = (props) => {
                       <Button
                         size="small"
                         variant="secondary"
-                        disabled={!props.directory || state.togglingMcp === item.name || item.config.enabled === false}
+                        disabled={
+                          !props.directory ||
+                          connecting() ||
+                          state.togglingMcp === item.name ||
+                          item.config.enabled === false
+                        }
                         onClick={() => void toggleMcpConnection(item.name)}
                       >
                         {status() === "connected"
                           ? language.t("common.disconnect")
-                          : status() === "needs_auth"
-                            ? language.t("mcp.auth.clickToAuthenticate")
-                            : language.t("common.connect")}
+                          : connecting()
+                            ? language.t("mcp.status.connecting")
+                            : status() === "needs_auth"
+                              ? language.t("mcp.auth.clickToAuthenticate")
+                              : language.t("common.connect")}
                       </Button>
                       <Show when={editable()}>
                         <IconButton
@@ -452,7 +462,11 @@ export const SettingsMcpPanel: Component<{ directory: string }> = (props) => {
                         <span class="text-14-regular text-text-strong truncate">{item.name}</span>
                         <Tag>{mcpConfigKind(item.config)}</Tag>
                         <Show when={result()}>
-                          {(value) => <span class="text-11-regular text-text-weaker">{language.t(statusLabels[value().status.status])}</span>}
+                          {(value) => (
+                            <span class="text-11-regular text-text-weaker">
+                              {language.t(statusLabels[value().status.status])}
+                            </span>
+                          )}
                         </Show>
                       </div>
                       <span class="text-12-regular text-text-weak truncate">

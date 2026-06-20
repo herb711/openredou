@@ -5,6 +5,7 @@ import { usePrompt, type ContentPart, type ImageAttachmentPart } from "@/context
 import { useLanguage } from "@/context/language"
 import { uuid } from "@/utils/uuid"
 import { getCursorPosition } from "./editor-dom"
+import { promptDropPayload } from "./drop"
 import { attachmentMime } from "./files"
 import { normalizePaste, pasteMode } from "./paste"
 
@@ -166,19 +167,14 @@ export function createPromptAttachments(input: PromptAttachmentsInput) {
     event.preventDefault()
     input.setDraggingType(null)
 
-    const plainText = event.dataTransfer?.getData("text/plain")
-    const filePrefix = "file:"
-    if (plainText?.startsWith(filePrefix)) {
-      const filePath = plainText.slice(filePrefix.length)
+    const payload = promptDropPayload(event.dataTransfer)
+    if (payload.type === "mention") {
       input.focusEditor()
-      input.addPart({ type: "file", path: filePath, content: "@" + filePath, start: 0, end: 0 })
+      input.addPart({ type: "file", path: payload.path, content: "@" + payload.path, start: 0, end: 0 })
       return
     }
 
-    const dropped = event.dataTransfer?.files
-    if (!dropped) return
-
-    await addAttachments(Array.from(dropped))
+    if (payload.type === "attachments") await addAttachments(payload.files)
   }
 
   onMount(() => {

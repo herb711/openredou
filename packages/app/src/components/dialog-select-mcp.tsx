@@ -11,6 +11,7 @@ import { pathKey } from "@/utils/path-key"
 
 const statusLabels = {
   connected: "mcp.status.connected",
+  connecting: "mcp.status.connecting",
   failed: "mcp.status.failed",
   needs_auth: "mcp.status.needs_auth",
   needs_client_registration: "mcp.status.needs_client_registration",
@@ -56,13 +57,18 @@ export const DialogSelectMcp: Component = () => {
     >
       <List
         search={{ placeholder: language.t("common.search.placeholder"), autofocus: true }}
-        emptyMessage={language.t("dialog.mcp.empty")}
+        emptyMessage={
+          sync.data.mcp_ready
+            ? language.t("dialog.mcp.empty")
+            : `${language.t("common.loading")}${language.t("common.loading.ellipsis")}`
+        }
         key={(x) => x?.name ?? ""}
         items={items}
         filterKeys={["name", "status"]}
         sortBy={(a, b) => a.name.localeCompare(b.name)}
         onSelect={(x) => {
           if (!x || toggle.isPending) return
+          if (x.status === "connecting") return
           toggle.mutate(x.name)
         }}
       >
@@ -79,6 +85,7 @@ export const DialogSelectMcp: Component = () => {
             if (s?.status === "failed" || s?.status === "needs_client_registration") return s.error
           }
           const enabled = () => status() === "connected"
+          const disabled = () => status() === "connecting" || (toggle.isPending && toggle.variables === i.name)
           return (
             <div class="w-full flex items-center justify-between gap-x-3">
               <div class="flex flex-col gap-0.5 min-w-0">
@@ -95,9 +102,9 @@ export const DialogSelectMcp: Component = () => {
               <div onClick={(e) => e.stopPropagation()}>
                 <Switch
                   checked={enabled()}
-                  disabled={toggle.isPending && toggle.variables === i.name}
+                  disabled={disabled()}
                   onChange={() => {
-                    if (toggle.isPending) return
+                    if (disabled()) return
                     toggle.mutate(i.name)
                   }}
                 />

@@ -24,6 +24,7 @@ const clientStates = new Map<string, MockClientState>()
 let lastCreatedClientName: string | undefined
 let connectShouldFail = false
 let connectShouldHang = false
+let connectDelayMs = 0
 let connectError = "Mock transport cannot connect"
 // Tracks how many Client instances were created (detects leaks)
 let clientCreateCount = 0
@@ -59,6 +60,7 @@ class MockStdioTransport {
   // oxlint-disable-next-line no-useless-constructor
   constructor(_opts: any) {}
   async start() {
+    if (connectDelayMs > 0) await new Promise((resolve) => setTimeout(resolve, connectDelayMs))
     if (connectShouldHang) return new Promise<void>(() => {}) // never resolves
     if (connectShouldFail) throw new Error(connectError)
   }
@@ -71,6 +73,7 @@ class MockStreamableHTTP {
   // oxlint-disable-next-line no-useless-constructor
   constructor(_url: URL, _opts?: any) {}
   async start() {
+    if (connectDelayMs > 0) await new Promise((resolve) => setTimeout(resolve, connectDelayMs))
     if (connectShouldHang) return new Promise<void>(() => {}) // never resolves
     if (connectShouldFail) throw new Error(connectError)
   }
@@ -84,6 +87,7 @@ class MockSSE {
   // oxlint-disable-next-line no-useless-constructor
   constructor(_url: URL, _opts?: any) {}
   async start() {
+    if (connectDelayMs > 0) await new Promise((resolve) => setTimeout(resolve, connectDelayMs))
     if (connectShouldHang) return new Promise<void>(() => {}) // never resolves
     if (connectShouldFail) throw new Error(connectError)
   }
@@ -172,6 +176,7 @@ beforeEach(() => {
   lastCreatedClientName = undefined
   connectShouldFail = false
   connectShouldHang = false
+  connectDelayMs = 0
   connectError = "Mock transport cannot connect"
   clientCreateCount = 0
   transportCloseCount = 0
@@ -649,6 +654,98 @@ it.instance(
       }),
     ),
   { config: { mcp: {} } },
+)
+
+// ========================================================================
+// Test: startup status for slow configured server
+// ========================================================================
+
+it.instance(
+  "configured server reports connecting without blocking status",
+  () =>
+    MCP.Service.use((mcp: MCPNS.Interface) =>
+      Effect.gen(function* () {
+        connectShouldHang = true
+
+        const status = yield* mcp.status().pipe(
+          Effect.timeoutOrElse({
+            duration: "250 millis",
+            orElse: () => Effect.fail(new Error("timed out waiting for MCP status")),
+          }),
+        )
+
+        expect(status["slow-server"]?.status).toBe("connecting")
+      }),
+    ),
+  {
+    config: {
+      mcp: {
+        "slow-server": {
+          type: "local",
+          command: ["echo", "test"],
+          timeout: 60_000,
+        },
+      },
+    },
+  },
+)
+
+it.instance(
+  "configured server updates status when background connection finishes",
+  () =>
+    MCP.Service.use((mcp: MCPNS.Interface) =>
+      Effect.gen(function* () {
+        lastCreatedClientName = "eventual-server"
+        connectDelayMs = 50
+
+        const first = yield* mcp.status()
+        expect(first["eventual-server"]?.status).toBe("connecting")
+
+        yield* Effect.sleep("150 millis")
+
+        const after = yield* mcp.status()
+        expect(after["eventual-server"]?.status).toBe("connected")
+      }),
+    ),
+  {
+    config: {
+      mcp: {
+        "eventual-server": {
+          type: "local",
+          command: ["echo", "test"],
+        },
+      },
+    },
+  },
+)
+
+it.instance(
+  "configured server updates status when startup times out",
+  () =>
+    MCP.Service.use((mcp: MCPNS.Interface) =>
+      Effect.gen(function* () {
+        connectShouldHang = true
+
+        const first = yield* mcp.status()
+        expect(first["timeout-server"]?.status).toBe("connecting")
+
+        yield* Effect.sleep("200 millis")
+
+        const after = yield* mcp.status()
+        expect(after["timeout-server"]?.status).toBe("failed")
+      }),
+    ),
+  {
+    config: {
+      mcp: {
+        "timeout-server": {
+          type: "local",
+          command: ["echo", "test"],
+          timeout: 100,
+        },
+      },
+    },
+  },
 )
 
 // ========================================================================

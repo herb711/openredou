@@ -112,6 +112,7 @@ const useMcpToggleMutation = () => {
   return useMutation(() => ({
     mutationFn: async (name: string) => {
       const status = sync.data.mcp[name]
+      if (status?.status === "connecting") return
       if (status?.status === "connected") {
         await sdk.client.mcp.disconnect({ name })
         return
@@ -427,13 +428,19 @@ export function StatusPopoverBody(props: { shown: Accessor<boolean> }) {
               <Show
                 when={mcpNames().length > 0}
                 fallback={
-                  <div class="text-14-regular text-text-base text-center my-auto">{language.t("dialog.mcp.empty")}</div>
+                  <div class="text-14-regular text-text-base text-center my-auto">
+                    {sync.data.mcp_ready
+                      ? language.t("dialog.mcp.empty")
+                      : `${language.t("common.loading")}${language.t("common.loading.ellipsis")}`}
+                  </div>
                 }
               >
                 <For each={mcpNames()}>
                   {(name) => {
                     const status = () => mcpStatus(name)
                     const enabled = () => status() === "connected"
+                    const disabled = () =>
+                      status() === "connecting" || (toggleMcp.isPending && toggleMcp.variables === name)
                     return (
                       <button
                         type="button"
@@ -442,7 +449,7 @@ export function StatusPopoverBody(props: { shown: Accessor<boolean> }) {
                           if (toggleMcp.isPending) return
                           toggleMcp.mutate(name)
                         }}
-                        disabled={toggleMcp.isPending && toggleMcp.variables === name}
+                        disabled={disabled()}
                       >
                         <div
                           classList={{
@@ -451,7 +458,9 @@ export function StatusPopoverBody(props: { shown: Accessor<boolean> }) {
                             "bg-icon-critical-base": status() === "failed",
                             "bg-border-weak-base": status() === "disabled",
                             "bg-icon-warning-base":
-                              status() === "needs_auth" || status() === "needs_client_registration",
+                              status() === "connecting" ||
+                              status() === "needs_auth" ||
+                              status() === "needs_client_registration",
                           }}
                         />
                         <span class="flex flex-col min-w-0 flex-1">
@@ -463,13 +472,18 @@ export function StatusPopoverBody(props: { shown: Accessor<boolean> }) {
                               {language.t("mcp.auth.clickToAuthenticate")}
                             </span>
                           </Show>
+                          <Show when={status() === "connecting"}>
+                            <span class="text-11-regular text-text-weaker truncate">
+                              {language.t("mcp.status.connecting")}
+                            </span>
+                          </Show>
                         </span>
                         <div onClick={(event) => event.stopPropagation()}>
                           <Switch
                             checked={enabled()}
-                            disabled={toggleMcp.isPending && toggleMcp.variables === name}
+                            disabled={disabled()}
                             onChange={() => {
-                              if (toggleMcp.isPending) return
+                              if (disabled()) return
                               toggleMcp.mutate(name)
                             }}
                           />

@@ -22,7 +22,7 @@ export function StatusPopover() {
   const mcpIssue = createMemo(() => {
     const mcp = Object.values(sync.data.mcp ?? {})
     const failed = mcp.some((item) => item.status === "failed" || item.status === "needs_client_registration")
-    const warn = mcp.some((item) => item.status === "needs_auth")
+    const warn = mcp.some((item) => item.status === "connecting" || item.status === "needs_auth")
     if (failed) return "critical" as const
     if (warn) return "warning" as const
   })
@@ -92,7 +92,7 @@ function DirectoryStatusPopover() {
   const mcpIssue = createMemo(() => {
     const mcp = Object.values(sync.data.mcp ?? {})
     const failed = mcp.some((item) => item.status === "failed" || item.status === "needs_client_registration")
-    const warn = mcp.some((item) => item.status === "needs_auth")
+    const warn = mcp.some((item) => item.status === "connecting" || item.status === "needs_auth")
     if (failed) return "critical" as const
     if (warn) return "warning" as const
   })

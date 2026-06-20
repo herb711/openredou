@@ -21,6 +21,12 @@ const TEXT_MIMES = new Set([
 ])
 
 const SAMPLE = 4096
+const PDF_HEADER = new TextEncoder().encode("%PDF-")
+const GIF87A_HEADER = new TextEncoder().encode("GIF87a")
+const GIF89A_HEADER = new TextEncoder().encode("GIF89a")
+const RIFF_HEADER = new TextEncoder().encode("RIFF")
+const WEBP_HEADER = new TextEncoder().encode("WEBP")
+const PNG_HEADER = Uint8Array.of(0x89, 0x50, 0x4e, 0x47, 0x0d, 0x0a, 0x1a, 0x0a)
 
 function kind(type: string) {
   return type.split(";", 1)[0]?.trim().toLowerCase() ?? ""
@@ -50,6 +56,21 @@ function textBytes(bytes: Uint8Array) {
   return count / bytes.length <= 0.3
 }
 
+function startsWith(bytes: Uint8Array, prefix: Uint8Array) {
+  if (bytes.length < prefix.length) return false
+  return prefix.every((byte, index) => bytes[index] === byte)
+}
+
+function binaryMime(suffix: string, bytes: Uint8Array) {
+  if (suffix === "pdf" && startsWith(bytes, PDF_HEADER)) return "application/pdf"
+  if (suffix === "png" && startsWith(bytes, PNG_HEADER)) return "image/png"
+  if ((suffix === "jpg" || suffix === "jpeg") && bytes[0] === 0xff && bytes[1] === 0xd8 && bytes[2] === 0xff) {
+    return "image/jpeg"
+  }
+  if (suffix === "gif" && (startsWith(bytes, GIF87A_HEADER) || startsWith(bytes, GIF89A_HEADER))) return "image/gif"
+  if (suffix === "webp" && startsWith(bytes, RIFF_HEADER) && startsWith(bytes.slice(8), WEBP_HEADER)) return "image/webp"
+}
+
 export async function attachmentMime(file: File) {
   const type = kind(file.type)
   if (IMAGE_MIMES.has(type)) return type
@@ -61,6 +82,8 @@ export async function attachmentMime(file: File) {
 
   if (textMime(type)) return "text/plain"
   const bytes = new Uint8Array(await file.slice(0, SAMPLE).arrayBuffer())
+  const binary = binaryMime(suffix, bytes)
+  if (binary) return binary
   if (!textBytes(bytes)) return
   return "text/plain"
 }

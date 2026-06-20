@@ -318,6 +318,7 @@ export const dict = {
   "dialog.plugins.empty": "在 opencode.json 中配置的插件",
 
   "mcp.status.connected": "已连接",
+  "mcp.status.connecting": "正在连接",
   "mcp.status.failed": "失败",
   "mcp.status.needs_auth": "需要授权",
   "mcp.status.needs_client_registration": "需要客户端注册",

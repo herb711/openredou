@@ -297,6 +297,7 @@ export const dict = {
   "dialog.plugins.empty": "在 opencode.json 中設定的外掛程式",
 
   "mcp.status.connected": "已連線",
+  "mcp.status.connecting": "正在連線",
   "mcp.status.failed": "失敗",
   "mcp.status.needs_auth": "需要授權",
   "mcp.status.needs_client_registration": "需要用戶端註冊",
