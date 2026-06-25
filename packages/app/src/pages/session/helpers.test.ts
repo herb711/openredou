@@ -8,15 +8,7 @@ import {
   focusTerminalById,
   getTabReorderIndex,
   shouldFocusTerminalOnKeyDown,
-  shouldShowFileTree,
 } from "./helpers"
-
-describe("shouldShowFileTree", () => {
-  test("does not reserve space for a disabled file tree", () => {
-    expect(shouldShowFileTree({ visible: false, opened: true })).toBe(false)
-    expect(shouldShowFileTree({ visible: true, opened: true })).toBe(true)
-  })
-})
 
 describe("createOpenReviewFile", () => {
   test("opens and loads selected review file", () => {
@@ -183,6 +175,43 @@ describe("createSessionTabs", () => {
       expect(result.activeTab()).toBe("review")
       expect(result.activeFileTab()).toBeUndefined()
       expect(result.closableTab()).toBeUndefined()
+      dispose()
+    })
+  })
+
+  test("treats rules as a closable leading tab", () => {
+    createRoot((dispose) => {
+      const [state] = createStore({
+        active: undefined as string | undefined,
+        all: ["rules", "file://src/a.ts"],
+      })
+      const tabs = createMemo(() => ({ active: () => state.active, all: () => state.all }))
+      const result = createSessionTabs({
+        tabs,
+        pathFromTab: (tab) => (tab.startsWith("file://") ? tab.slice("file://".length) : undefined),
+        normalizeTab: (tab) => (tab.startsWith("file://") ? `norm:${tab.slice("file://".length)}` : tab),
+      })
+
+      expect(result.rulesOpen()).toBe(true)
+      expect(result.openedTabs()).toEqual(["norm:src/a.ts"])
+      expect(result.activeTab()).toBe("norm:src/a.ts")
+      dispose()
+    })
+
+    createRoot((dispose) => {
+      const [state] = createStore({
+        active: "rules" as string | undefined,
+        all: ["rules"],
+      })
+      const tabs = createMemo(() => ({ active: () => state.active, all: () => state.all }))
+      const result = createSessionTabs({
+        tabs,
+        pathFromTab: () => undefined,
+        normalizeTab: (tab) => tab,
+      })
+
+      expect(result.activeTab()).toBe("rules")
+      expect(result.closableTab()).toBe("rules")
       dispose()
     })
   })

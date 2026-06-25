@@ -1,4 +1,7 @@
+import { copyFileSync, existsSync, mkdirSync, renameSync, unlinkSync } from "node:fs"
+import { homedir } from "node:os"
 import { dirname, join } from "node:path"
+import { DatabaseSync } from "node:sqlite"
 import { fileURLToPath } from "node:url"
 import { app, utilityProcess } from "electron"
 import type { Details } from "electron"
@@ -50,6 +53,7 @@ export function preferAppEnv(userDataPath: string) {
     OPENCODE_CLIENT: "desktop",
     XDG_STATE_HOME: process.env.XDG_STATE_HOME ?? userDataPath,
   })
+  migrateLegacyChannelDatabase()
 }
 
 export async function spawnLocalServer(
@@ -215,6 +219,84 @@ function createSidecarEnv(): Record<string, string> {
   if (process.platform === "linux") delete env.LD_PRELOAD
   if (!app.isPackaged) env.OPENCODE_DISABLE_CHANNEL_DB = "1"
   return env
+}
+
+function migrateLegacyChannelDatabase() {
+  if (process.env.OPENCODE_DB) return
+
+  try {
+    const dir = opencodeDataDir()
+    const target = join(dir, "opencode.db")
+    if (sessionCount(target) > 0) return
+
+    const source = ["opencode-dev.db", "opencode-beta.db"]
+      .map((name) => {
+        const filename = join(dir, name)
+        return { filename, sessions: sessionCount(filename) }
+      })
+      .filter((item) => item.sessions > 0)
+      .sort((a, b) => b.sessions - a.sessions)[0]
+
+    if (!source) return
+
+    mkdirSync(dir, { recursive: true })
+    const timestamp = Date.now()
+    const backupSuffix = `.backup-${timestamp}`
+    for (const file of [target, `${target}-wal`, `${target}-shm`]) {
+      if (existsSync(file)) copyFileSync(file, `${file}${backupSuffix}`)
+    }
+
+    const snapshot = `${target}.legacy-${timestamp}.tmp`
+    snapshotDatabase(source.filename, snapshot)
+    for (const file of [target, `${target}-wal`, `${target}-shm`]) {
+      if (existsSync(file)) unlinkSync(file)
+    }
+    renameSync(snapshot, target)
+
+    getLogger().log("migrated legacy channel database", {
+      source: source.filename,
+      target,
+      sessions: source.sessions,
+      backupSuffix,
+    })
+  } catch (error) {
+    getLogger().warn("failed to migrate legacy channel database", error)
+  }
+}
+
+function opencodeDataDir() {
+  const data =
+    process.env.XDG_DATA_HOME ??
+    (process.platform === "darwin" ? join(homedir(), "Library", "Application Support") : join(homedir(), ".local", "share"))
+  return join(data, "opencode")
+}
+
+function sessionCount(filename: string) {
+  if (!existsSync(filename)) return 0
+  const db = new DatabaseSync(filename, { readOnly: true })
+  try {
+    if (!db.prepare("SELECT 1 FROM sqlite_master WHERE type = 'table' AND name = 'session'").get()) return 0
+    return countValue(db.prepare("SELECT COUNT(*) AS count FROM session").get())
+  } finally {
+    db.close()
+  }
+}
+
+function countValue(row: unknown) {
+  if (!row || typeof row !== "object") return 0
+  const value = (row as Record<string, unknown>).count
+  if (typeof value === "bigint") return Number(value)
+  if (typeof value === "number") return value
+  return 0
+}
+
+function snapshotDatabase(source: string, target: string) {
+  const db = new DatabaseSync(source, { readOnly: true })
+  try {
+    db.prepare("VACUUM INTO ?").run(target)
+  } finally {
+    db.close()
+  }
 }
 
 function delay(ms: number) {

@@ -1,7 +1,6 @@
-import { test } from "@playwright/test"
+import { expect, test } from "@playwright/test"
 import { fixture, pageMessages } from "../smoke/session-timeline.fixture"
 import { mockOpenCodeServer } from "../utils/mock-server"
-import { expectAppVisible } from "../utils/waits"
 
 test("shows loaded sessions before the directory path request resolves", async ({ page }) => {
   await mockOpenCodeServer(page, {
@@ -34,7 +33,7 @@ test("shows loaded sessions before the directory path request resolves", async (
 
   await page.goto("/")
   try {
-    await expectAppVisible(page.getByText(fixture.expected.sourceTitle).first())
+    await expect(page.getByText(fixture.expected.sourceTitle).first()).toBeVisible({ timeout: 5_000 })
   } finally {
     releasePath()
   }

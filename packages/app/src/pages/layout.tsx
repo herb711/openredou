@@ -1364,6 +1364,16 @@ export default function Layout(props: ParentProps) {
     if (navigate) return navigateToProject(directory)
   }
 
+  function openProjectRules(project: LocalProject) {
+    const directory = project.worktree
+    const slug = base64Encode(directory)
+    const key = SessionStateKey.from(server.scope(), SessionRouteKey.fromLegacy(slug))
+    server.projects.touch(directory)
+    void layout.tabs(key).open("rules")
+    layout.view(key).reviewPanel.open()
+    navigateWithSidebarReset(`/${slug}/session`)
+  }
+
   const handleDeepLinks = (urls: string[]) => {
     if (!server.isLocal()) return
 
@@ -2012,6 +2022,7 @@ export default function Layout(props: ParentProps) {
     openSidebar: () => layout.sidebar.open(),
     closeProject,
     showEditProjectDialog: (proj) => showEditProjectDialog(server.current!, proj),
+    openProjectRules,
     toggleProjectWorkspaces,
     workspacesEnabled: (project) => project.vcs === "git" && layout.sidebar.workspaces(project.worktree)(),
     workspaceIds,
@@ -2162,6 +2173,15 @@ export default function Layout(props: ParentProps) {
                           }}
                         >
                           <DropdownMenu.ItemLabel>{language.t("common.edit")}</DropdownMenu.ItemLabel>
+                        </DropdownMenu.Item>
+                        <DropdownMenu.Item
+                          data-action="project-rules-menu"
+                          data-project={slug()}
+                          onSelect={() => {
+                            openProjectRules(project)
+                          }}
+                        >
+                          <DropdownMenu.ItemLabel>{language.t("sidebar.project.rules")}</DropdownMenu.ItemLabel>
                         </DropdownMenu.Item>
                         <DropdownMenu.Item
                           data-action="project-workspaces-toggle"

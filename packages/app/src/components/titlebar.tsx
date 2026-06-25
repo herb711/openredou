@@ -1003,11 +1003,13 @@ function NewSessionTabItem(props: { ref?: HTMLDivElement; href: string; title: s
 }
 
 function ChannelIndicator() {
+  const channel = import.meta.env.VITE_OPENCODE_CHANNEL
+
   return (
     <>
-      {["beta", "dev"].includes(import.meta.env.VITE_OPENCODE_CHANNEL) && (
-        <div class="bg-icon-interactive-base text-[#FFF] font-medium px-2 rounded-sm uppercase font-mono">
-          {import.meta.env.VITE_OPENCODE_CHANNEL.toUpperCase()}
+      {(channel === "beta" || channel === "dev") && (
+        <div class="bg-[#d92e3c] text-[#FFF] font-medium px-2 rounded-sm font-mono">
+          {channel === "dev" ? "Redou" : channel.toUpperCase()}
         </div>
       )}
     </>

@@ -27,6 +27,7 @@ export type ProjectSidebarContext = {
   openSidebar: () => void
   closeProject: (directory: string) => void
   showEditProjectDialog: (project: LocalProject) => void
+  openProjectRules: (project: LocalProject) => void
   toggleProjectWorkspaces: (project: LocalProject) => void
   workspacesEnabled: (project: LocalProject) => boolean
   workspaceIds: (project: LocalProject) => string[]
@@ -71,6 +72,7 @@ const ProjectTile = (props: {
   setMenu: (value: boolean) => void
   setOpen: (value: boolean) => void
   setSuppressHover: (value: boolean) => void
+  openProjectRules: (project: LocalProject) => void
   language: ReturnType<typeof useLanguage>
 }): JSX.Element => {
   const notification = useNotification()
@@ -150,6 +152,13 @@ const ProjectTile = (props: {
         <ContextMenu.Content>
           <ContextMenu.Item onSelect={() => props.showEditProjectDialog(props.project)}>
             <ContextMenu.ItemLabel>{props.language.t("common.edit")}</ContextMenu.ItemLabel>
+          </ContextMenu.Item>
+          <ContextMenu.Item
+            data-action="project-rules-menu"
+            data-project={base64Encode(props.project.worktree)}
+            onSelect={() => props.openProjectRules(props.project)}
+          >
+            <ContextMenu.ItemLabel>{props.language.t("sidebar.project.rules")}</ContextMenu.ItemLabel>
           </ContextMenu.Item>
           <ContextMenu.Item
             data-action="project-workspaces-toggle"
@@ -335,6 +344,7 @@ export const SortableProject = (props: {
       setMenu={(value) => setState("menu", value)}
       setOpen={(value) => props.ctx.onHoverOpenChanged(props.project.worktree, value)}
       setSuppressHover={(value) => setState("suppressHover", value)}
+      openProjectRules={props.ctx.openProjectRules}
       language={language}
     />
   )

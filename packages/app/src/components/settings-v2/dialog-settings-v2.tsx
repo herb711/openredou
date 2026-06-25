@@ -1,4 +1,4 @@
-import { Component } from "solid-js"
+import { Component, Show } from "solid-js"
 import { Dialog } from "@opencode-ai/ui/v2/dialog-v2"
 import { TabsV2 } from "@opencode-ai/ui/v2/tabs-v2"
 import { Icon } from "@opencode-ai/ui/icon"
@@ -6,10 +6,12 @@ import { useLanguage } from "@/context/language"
 import { usePlatform } from "@/context/platform"
 import { SettingsGeneralV2 } from "./general"
 import { SettingsKeybinds } from "../settings-keybinds"
+import { SettingsArchived } from "../settings-archived"
 import { SettingsProvidersV2 } from "./providers"
 import { SettingsModelsV2 } from "./models"
 import "./settings-v2.css"
 import { SettingsServersV2 } from "./servers"
+import { SettingsPlugins } from "../settings-plugins"
 
 export const DialogSettings: Component = () => {
   const language = useLanguage()
@@ -33,6 +35,10 @@ export const DialogSettings: Component = () => {
                       <Icon name="keyboard" />
                       {language.t("settings.tab.shortcuts")}
                     </TabsV2.Trigger>
+                    <TabsV2.Trigger value="archived">
+                      <Icon name="archive" />
+                      {language.t("settings.tab.archived")}
+                    </TabsV2.Trigger>
                   </div>
                 </div>
 
@@ -51,13 +57,19 @@ export const DialogSettings: Component = () => {
                       <Icon name="models" />
                       {language.t("settings.models.title")}
                     </TabsV2.Trigger>
+                    <TabsV2.Trigger value="plugins">
+                      <Icon name="mcp" />
+                      {language.t("settings.plugins.title")}
+                    </TabsV2.Trigger>
                   </div>
                 </div>
               </div>
             </div>
             <div class="settings-v2-nav-footer">
-              <span>{language.t("app.name.desktop")}</span>
-              <span>v{platform.version}</span>
+              <span>OpenRedou v{platform.version}</span>
+              <Show when={platform.upstreamOpenCodeVersion}>
+                {(version) => <span>Based on OpenCode v{version()}</span>}
+              </Show>
             </div>
           </div>
         </TabsV2.List>
@@ -67,6 +79,9 @@ export const DialogSettings: Component = () => {
         <TabsV2.Content value="shortcuts" class="settings-v2-panel">
           <SettingsKeybinds v2 />
         </TabsV2.Content>
+        <TabsV2.Content value="archived" class="settings-v2-panel">
+          <SettingsArchived />
+        </TabsV2.Content>
         <TabsV2.Content value="servers" class="settings-v2-panel">
           <SettingsServersV2 />
         </TabsV2.Content>
@@ -75,6 +90,9 @@ export const DialogSettings: Component = () => {
         </TabsV2.Content>
         <TabsV2.Content value="models" class="settings-v2-panel">
           <SettingsModelsV2 />
+        </TabsV2.Content>
+        <TabsV2.Content value="plugins" class="settings-v2-panel">
+          <SettingsPlugins />
         </TabsV2.Content>
       </TabsV2>
     </Dialog>

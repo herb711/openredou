@@ -1,5 +1,35 @@
 import { createUniqueId, type ComponentProps } from "solid-js"
 
+const wordmark = ["o", "p", "e", "n", "r", "e", "d", "o", "u"] as const
+const wordmarkAdvance = 92.3125
+const wordmarkWidth = 812.3462
+const wordmarkHeight = 129.001
+const glyphs = {
+  d: [
+    "M55.3846 36.8571H18.4615V92.1429H55.3846V36.8571Z",
+    "M73.8462 110.571H0V18.4286H55.3846V0H73.8462V110.571Z",
+  ],
+  e: [
+    "M73.8462 73.7154H18.4615V92.144H73.8462V110.573H0V18.4297H73.8462V73.7154ZM18.4615 55.2868H55.3846V36.8583H18.4615V55.2868Z",
+  ],
+  n: [
+    "M55.3846 36.8583H18.4615V110.573H0V18.4297H55.3846V36.8583Z",
+    "M73.8462 110.573H55.3846V36.8583H73.8462V110.573Z",
+  ],
+  o: [
+    "M55.3846 36.8583H18.4615V92.144H55.3846V36.8583ZM73.8462 110.573H0V18.4297H73.8462V110.573Z",
+  ],
+  p: [
+    "M18.4615 92.144H55.3846V36.8583H18.4615V92.144Z",
+    "M73.8462 110.573H18.4615V129.001H0V18.4297H73.8462V110.573Z",
+  ],
+  r: [
+    "M18.4615 110.573H0V18.4297H55.3846V36.8583H18.4615V110.573Z",
+    "M73.8462 55.2868H55.3846V36.8583H73.8462V55.2868Z",
+  ],
+  u: ["M73.8462 110.573H0V18.4297H18.4615V92.144H55.3846V18.4297H73.8462V110.573Z"],
+} as const
+
 export function WordmarkV2(props: Pick<ComponentProps<"svg">, "class">) {
   const filter = createUniqueId()
   const mask = createUniqueId()
@@ -8,58 +38,32 @@ export function WordmarkV2(props: Pick<ComponentProps<"svg">, "class">) {
   return (
     <svg
       xmlns="http://www.w3.org/2000/svg"
-      viewBox="0 0 720.002 129.001"
+      viewBox={`0 0 ${wordmarkWidth} ${wordmarkHeight}`}
       fill="none"
       preserveAspectRatio="none"
       classList={{ [props.class ?? ""]: !!props.class }}
     >
       <g opacity="0.16" filter={`url(#${filter})`} mask={`url(#${mask})`}>
-        <path
-          opacity="0.7"
-          d="M55.3846 36.8583H18.4615V92.144H55.3846V36.8583ZM73.8462 110.573H0V18.4297H73.8462V110.573Z"
-          fill="currentColor"
-        />
-        <path
-          opacity="0.7"
-          d="M110.774 92.144H147.697V36.8583H110.774V92.144ZM166.159 110.573H110.774V129.001H92.3125V18.4297H166.159V110.573Z"
-          fill="currentColor"
-        />
-        <path
-          opacity="0.7"
-          d="M258.463 73.7154H203.079V92.144H258.463V110.573H184.617V18.4297H258.463V73.7154ZM203.079 55.2868H240.002V36.8583H203.079V55.2868Z"
-          fill="currentColor"
-        />
-        <path
-          opacity="0.7"
-          d="M332.306 36.8583H295.383V110.573H276.922V18.4297H332.306V36.8583ZM350.768 110.573H332.306V36.8583H350.768V110.573Z"
-          fill="currentColor"
-        />
-        <path
-          opacity="0.7"
-          d="M443.081 36.8583H387.696V92.144H443.081V110.573H369.234V18.4297H443.081V36.8583Z"
-          fill="currentColor"
-        />
-        <path
-          opacity="0.7"
-          d="M516.924 36.8583H480.001V92.144H516.924V36.8583ZM535.385 110.573H461.539V18.4297H535.385V110.573Z"
-          fill="currentColor"
-        />
-        <path
-          opacity="0.7"
-          d="M609.228 36.8571H572.305V92.1429H609.228V36.8571ZM627.69 110.571H553.844V18.4286H609.228V0H627.69V110.571Z"
-          fill="currentColor"
-        />
-        <path
-          opacity="0.7"
-          d="M664.618 36.8583V55.2868H701.541V36.8583H664.618ZM720.002 73.7154H664.618V92.144H720.002V110.573H646.156V18.4297H720.002V73.7154Z"
-          fill="currentColor"
-        />
+        {wordmark.map((item, index) => (
+          <g transform={`translate(${index * wordmarkAdvance} 0)`}>
+            {glyphs[item].map((d) => (
+              <path opacity="0.7" d={d} fill="currentColor" />
+            ))}
+          </g>
+        ))}
       </g>
       <defs>
-        <mask id={mask} maskUnits="userSpaceOnUse" x="0" y="0" width="720" height="129">
-          <rect width="720" height="129" fill={`url(#${maskGradient})`} />
+        <mask id={mask} maskUnits="userSpaceOnUse" x="0" y="0" width={wordmarkWidth} height={wordmarkHeight}>
+          <rect width={wordmarkWidth} height={wordmarkHeight} fill={`url(#${maskGradient})`} />
         </mask>
-        <linearGradient id={maskGradient} x1="360" y1="0" x2="360" y2="112" gradientUnits="userSpaceOnUse">
+        <linearGradient
+          id={maskGradient}
+          x1={wordmarkWidth / 2}
+          y1="0"
+          x2={wordmarkWidth / 2}
+          y2="112"
+          gradientUnits="userSpaceOnUse"
+        >
           <stop stop-color="white" stop-opacity="0.7" />
           <stop offset="1" stop-color="white" stop-opacity="0" />
         </linearGradient>
@@ -67,8 +71,8 @@ export function WordmarkV2(props: Pick<ComponentProps<"svg">, "class">) {
           id={filter}
           x="0"
           y="0"
-          width="720.002"
-          height="130.001"
+          width={wordmarkWidth}
+          height={wordmarkHeight + 1}
           filterUnits="userSpaceOnUse"
           color-interpolation-filters="sRGB"
         >

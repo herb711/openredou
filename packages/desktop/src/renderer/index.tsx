@@ -13,6 +13,8 @@ import {
   ServerConnection,
   useCommand,
   useWslServers,
+  getFullVersionLabel,
+  getUpstreamOpenCodeVersion,
 } from "@opencode-ai/app"
 import type { UpdaterState } from "@opencode-ai/app/updater"
 import * as Sentry from "@sentry/solid"
@@ -136,6 +138,8 @@ const createPlatform = (): Platform => {
     platform: "desktop",
     os,
     version: pkg.version,
+    upstreamOpenCodeVersion: getUpstreamOpenCodeVersion(),
+    fullVersionLabel: getFullVersionLabel(pkg.version),
 
     async openDirectoryPickerDialog(opts) {
       return window.api.openDirectoryPicker({

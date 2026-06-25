@@ -4,6 +4,7 @@ import { Database } from "@opencode-ai/core/database/database"
 import { ProjectDirectoryTable, ProjectTable } from "@opencode-ai/core/project/sql"
 import { ProjectDirectories } from "@opencode-ai/core/project/directories"
 import { SessionTable } from "@opencode-ai/core/session/sql"
+import { PermissionTable } from "@opencode-ai/core/permission/sql"
 import { WorkspaceTable } from "@opencode-ai/core/control-plane/workspace.sql"
 import { Flag } from "@opencode-ai/core/flag/flag"
 import { GlobalBus } from "@/bus/global"
@@ -100,6 +101,11 @@ export const UpdatePayload = Schema.Struct({
 }).annotate({ identifier: "ProjectUpdateInput" })
 export type UpdatePayload = Types.DeepMutable<Schema.Schema.Type<typeof UpdatePayload>>
 
+export const DeleteInput = Schema.Struct({
+  projectID: ProjectV2.ID,
+})
+export type DeleteInput = Types.DeepMutable<Schema.Schema.Type<typeof DeleteInput>>
+
 export class NotFoundError extends Schema.TaggedErrorClass<NotFoundError>()("Project.NotFoundError", {
   projectID: ProjectV2.ID,
 }) {}
@@ -120,6 +126,7 @@ export interface Interface {
   readonly list: () => Effect.Effect<Info[]>
   readonly get: (id: ProjectV2.ID) => Effect.Effect<Info | undefined>
   readonly update: (input: UpdateInput) => Effect.Effect<Info, NotFoundError>
+  readonly delete: (input: DeleteInput) => Effect.Effect<void, NotFoundError>
   readonly initGit: (input: { directory: string; project: Info }) => Effect.Effect<Info>
   readonly setInitialized: (id: ProjectV2.ID) => Effect.Effect<void>
   readonly sandboxes: (id: ProjectV2.ID) => Effect.Effect<string[]>
@@ -392,6 +399,30 @@ export const layer = Layer.effect(
       return data
     })
 
+    const deleteProject = Effect.fn("Project.delete")(function* (input: DeleteInput) {
+      const row = yield* db
+        .select({ id: ProjectTable.id })
+        .from(ProjectTable)
+        .where(eq(ProjectTable.id, input.projectID))
+        .get()
+        .pipe(Effect.orDie)
+      if (!row) return yield* new NotFoundError({ projectID: input.projectID })
+
+      yield* db
+        .transaction(
+          (d) =>
+            Effect.gen(function* () {
+              yield* d.delete(SessionTable).where(eq(SessionTable.project_id, input.projectID)).run()
+              yield* d.delete(PermissionTable).where(eq(PermissionTable.project_id, input.projectID)).run()
+              yield* d.delete(WorkspaceTable).where(eq(WorkspaceTable.project_id, input.projectID)).run()
+              yield* d.delete(ProjectDirectoryTable).where(eq(ProjectDirectoryTable.project_id, input.projectID)).run()
+              yield* d.delete(ProjectTable).where(eq(ProjectTable.id, input.projectID)).run()
+            }),
+          { behavior: "immediate" },
+        )
+        .pipe(Effect.orDie)
+    })
+
     const initGit = Effect.fn("Project.initGit")(function* (input: { directory: string; project: Info }) {
       if (input.project.vcs === "git") return input.project
       if (!(yield* Effect.sync(() => which("git")))) throw new Error("Git is not installed")
@@ -483,6 +514,7 @@ export const layer = Layer.effect(
       list,
       get,
       update,
+      delete: deleteProject,
       initGit,
       setInitialized,
       sandboxes,

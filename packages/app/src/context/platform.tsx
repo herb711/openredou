@@ -31,6 +31,12 @@ type PlatformBase = {
   /** App version */
   version?: string
 
+  /** Upstream OpenCode version this build is based on */
+  upstreamOpenCodeVersion?: string
+
+  /** Combined display label for product and upstream versions */
+  fullVersionLabel?: string
+
   /** Open a URL in the default browser */
   openLink(url: string): void
 

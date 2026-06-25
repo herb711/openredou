@@ -234,4 +234,18 @@
     gap: 8px;
     margin-top: 10px;
   }
+
+  [data-slot="session-review-more"] {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 12px;
+    padding: 12px 0;
+  }
+
+  [data-slot="session-review-more-meta"] {
+    font-family: var(--font-family-sans);
+    font-size: var(--font-size-small);
+    color: var(--text-weak);
+  }
 }

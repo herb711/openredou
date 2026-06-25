@@ -518,9 +518,9 @@ export default function Page() {
         todoTimer = undefined
         if (!id) return
         if (status === "idle" && !blocked) return
-        const cached = untrack(
-          () => sync().data.todo[id] !== undefined || serverSync().data.session_todo[id] !== undefined,
-        )
+        const cached = untrack(() => serverSync().data.session_todo[id] ?? sync().data.todo[id])
+        // Empty local todo cache marks stale todos hidden after failure/abort; don't revive persisted todos on the next turn.
+        if (cached?.length === 0) return
 
         todoFrame = requestAnimationFrame(() => {
           todoFrame = undefined

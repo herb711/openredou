@@ -10,6 +10,7 @@ import { SSEClientTransport } from "@modelcontextprotocol/sdk/client/sse.js"
 import { StdioClientTransport } from "@modelcontextprotocol/sdk/client/stdio.js"
 import { UnauthorizedError } from "@modelcontextprotocol/sdk/client/auth.js"
 import {
+  CallToolResultSchema,
   ListRootsRequestSchema,
   type LoggingMessageNotification,
   LoggingMessageNotificationSchema,
@@ -95,6 +96,9 @@ function createClient(directory: string) {
 const StatusConnected = Schema.Struct({ status: Schema.Literal("connected") }).annotate({
   identifier: "MCPStatusConnected",
 })
+const StatusConnecting = Schema.Struct({ status: Schema.Literal("connecting") }).annotate({
+  identifier: "MCPStatusConnecting",
+})
 const StatusDisabled = Schema.Struct({ status: Schema.Literal("disabled") }).annotate({
   identifier: "MCPStatusDisabled",
 })
@@ -111,6 +115,7 @@ const StatusNeedsClientRegistration = Schema.Struct({
 
 export const Status = Schema.Union([
   StatusConnected,
+  StatusConnecting,
   StatusDisabled,
   StatusFailed,
   StatusNeedsAuth,
@@ -147,6 +152,17 @@ interface AuthResult {
   client?: MCPClient
 }
 
+export interface ProbeResult {
+  status: Status
+  tools: Array<{ name: string; description?: string }>
+  smoke?: {
+    ok: boolean
+    tool: string
+    error?: string
+    outputPreview?: string
+  }
+}
+
 // --- Effect Service ---
 
 interface State {
@@ -165,6 +181,7 @@ export interface Interface {
   readonly add: (name: string, mcp: ConfigMCPV1.Info) => Effect.Effect<{ status: Record<string, Status> | Status }>
   readonly connect: (name: string) => Effect.Effect<void, NotFoundError>
   readonly disconnect: (name: string) => Effect.Effect<void, NotFoundError>
+  readonly probe: (name: string, options?: { smoke?: boolean }) => Effect.Effect<ProbeResult, NotFoundError>
   readonly getPrompt: (
     clientName: string,
     name: string,
@@ -625,6 +642,79 @@ export const layer = Layer.effect(
       return s.config[name]?.timeout ?? staticTimeout ?? fallback
     }
 
+    function summarizeCallToolResult(value: unknown) {
+      return (JSON.stringify(value) ?? String(value)).slice(0, 500)
+    }
+
+    const probe = Effect.fn("MCP.probe")(function* (name: string, options?: { smoke?: boolean }) {
+      const mcpConfig = yield* requireMcpConfig(name)
+      const s = yield* InstanceState.get(state)
+      if (s.status[name]?.status !== "connected") {
+        yield* createAndStore(name, { ...mcpConfig, enabled: true })
+      }
+
+      const status = s.status[name] ?? ({ status: "disabled" } satisfies Status)
+      const tools = (s.defs[name] ?? []).map((tool) => ({
+        name: tool.name,
+        ...(tool.description ? { description: tool.description } : {}),
+      }))
+      const result: ProbeResult = { status, tools }
+      if (!options?.smoke) return result
+
+      const client = s.clients[name]
+      const tool = "list_voices"
+      if (status.status !== "connected" || !client) {
+        result.smoke = { ok: false, tool, error: "MCP server is not connected." }
+        return result
+      }
+      if (!s.defs[name]?.some((item) => item.name === tool)) {
+        result.smoke = { ok: false, tool, error: "list_voices tool was not found." }
+        return result
+      }
+
+      const cfg = yield* cfgSvc.get()
+      const callResult = yield* Effect.tryPromise({
+        try: () =>
+          client.callTool(
+            { name: tool, arguments: {} },
+            CallToolResultSchema,
+            {
+              resetTimeoutOnProgress: true,
+              timeout: requestTimeout(s, name, mcpConfig, cfg.experimental?.mcp_timeout) ?? DEFAULT_TIMEOUT,
+            },
+          ),
+        catch: (error) => error,
+      }).pipe(
+        Effect.map((value) => ({ ok: true as const, value })),
+        Effect.catch((error) => Effect.succeed({ ok: false as const, error })),
+      )
+
+      if (!callResult.ok) {
+        result.smoke = {
+          ok: false,
+          tool,
+          error: callResult.error instanceof Error ? callResult.error.message : String(callResult.error),
+        }
+        return result
+      }
+
+      if (callResult.value.isError) {
+        result.smoke = {
+          ok: false,
+          tool,
+          error:
+            callResult.value.content
+              .flatMap((item) => (item.type === "text" ? [item.text] : []))
+              .filter((text) => text.trim())
+              .join("\n\n") || "MCP tool returned an error.",
+        }
+        return result
+      }
+
+      result.smoke = { ok: true, tool, outputPreview: summarizeCallToolResult(callResult.value) }
+      return result
+    })
+
     const tools = Effect.fn("MCP.tools")(function* () {
       const result: Record<string, Tool> = {}
       const s = yield* InstanceState.get(state)
@@ -923,6 +1013,7 @@ export const layer = Layer.effect(
       add,
       connect,
       disconnect,
+      probe,
       getPrompt,
       readResource,
       startAuth,

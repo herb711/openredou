@@ -108,6 +108,8 @@ import type {
   McpDisconnectErrors,
   McpDisconnectResponses,
   McpLocalConfig,
+  McpProbeErrors,
+  McpProbeResponses,
   McpRemoteConfig,
   McpStatusErrors,
   McpStatusResponses,
@@ -130,6 +132,8 @@ import type {
   PermissionV2Reply,
   ProjectCurrentErrors,
   ProjectCurrentResponses,
+  ProjectDeleteErrors,
+  ProjectDeleteResponses,
   ProjectDirectoriesErrors,
   ProjectDirectoriesResponses,
   ProjectInitGitErrors,
@@ -171,6 +175,10 @@ import type {
   QuestionReplyErrors,
   QuestionReplyResponses,
   QuestionV2Reply,
+  RulesGetErrors,
+  RulesGetResponses,
+  RulesUpdateErrors,
+  RulesUpdateResponses,
   SessionAbortErrors,
   SessionAbortResponses,
   SessionChildrenErrors,
@@ -2493,6 +2501,45 @@ export class Mcp extends HeyApiClient {
     })
   }
 
+  /**
+   * Probe MCP server
+   *
+   * Connect to an MCP server, list tools, and optionally run a low-cost smoke test.
+   */
+  public probe<ThrowOnError extends boolean = false>(
+    parameters: {
+      name: string
+      directory?: string
+      workspace?: string
+      smoke?: boolean
+    },
+    options?: Options<never, ThrowOnError>,
+  ) {
+    const params = buildClientParams(
+      [parameters],
+      [
+        {
+          args: [
+            { in: "path", key: "name" },
+            { in: "query", key: "directory" },
+            { in: "query", key: "workspace" },
+            { in: "body", key: "smoke" },
+          ],
+        },
+      ],
+    )
+    return (options?.client ?? this.client).post<McpProbeResponses, McpProbeErrors, ThrowOnError>({
+      url: "/mcp/{name}/probe",
+      ...options,
+      ...params,
+      headers: {
+        "Content-Type": "application/json",
+        ...options?.headers,
+        ...params.headers,
+      },
+    })
+  }
+
   private _auth?: Auth2
   get auth(): Auth2 {
     return (this._auth ??= new Auth2({ client: this.client }))
@@ -2585,6 +2632,38 @@ export class Project extends HeyApiClient {
     )
     return (options?.client ?? this.client).post<ProjectInitGitResponses, ProjectInitGitErrors, ThrowOnError>({
       url: "/project/git/init",
+      ...options,
+      ...params,
+    })
+  }
+
+  /**
+   * Delete project
+   *
+   * Delete a project from OpenCode history and remove associated sessions, permissions, and workspaces.
+   */
+  public delete<ThrowOnError extends boolean = false>(
+    parameters: {
+      projectID: string
+      directory?: string
+      workspace?: string
+    },
+    options?: Options<never, ThrowOnError>,
+  ) {
+    const params = buildClientParams(
+      [parameters],
+      [
+        {
+          args: [
+            { in: "path", key: "projectID" },
+            { in: "query", key: "directory" },
+            { in: "query", key: "workspace" },
+          ],
+        },
+      ],
+    )
+    return (options?.client ?? this.client).delete<ProjectDeleteResponses, ProjectDeleteErrors, ThrowOnError>({
+      url: "/project/{projectID}",
       ...options,
       ...params,
     })
@@ -3340,6 +3419,77 @@ export class Provider extends HeyApiClient {
   }
 }
 
+export class Rules extends HeyApiClient {
+  /**
+   * Get rules
+   *
+   * Read global and project AGENTS.md instruction files for the current workspace.
+   */
+  public get<ThrowOnError extends boolean = false>(
+    parameters?: {
+      directory?: string
+      workspace?: string
+    },
+    options?: Options<never, ThrowOnError>,
+  ) {
+    const params = buildClientParams(
+      [parameters],
+      [
+        {
+          args: [
+            { in: "query", key: "directory" },
+            { in: "query", key: "workspace" },
+          ],
+        },
+      ],
+    )
+    return (options?.client ?? this.client).get<RulesGetResponses, RulesGetErrors, ThrowOnError>({
+      url: "/rules",
+      ...options,
+      ...params,
+    })
+  }
+
+  /**
+   * Update rules
+   *
+   * Update global and project AGENTS.md instruction files for the current workspace.
+   */
+  public update<ThrowOnError extends boolean = false>(
+    parameters?: {
+      directory?: string
+      workspace?: string
+      global?: string
+      project?: string
+    },
+    options?: Options<never, ThrowOnError>,
+  ) {
+    const params = buildClientParams(
+      [parameters],
+      [
+        {
+          args: [
+            { in: "query", key: "directory" },
+            { in: "query", key: "workspace" },
+            { in: "body", key: "global" },
+            { in: "body", key: "project" },
+          ],
+        },
+      ],
+    )
+    return (options?.client ?? this.client).patch<RulesUpdateResponses, RulesUpdateErrors, ThrowOnError>({
+      url: "/rules",
+      ...options,
+      ...params,
+      headers: {
+        "Content-Type": "application/json",
+        ...options?.headers,
+        ...params.headers,
+      },
+    })
+  }
+}
+
 export class Session2 extends HeyApiClient {
   /**
    * List sessions
@@ -3548,7 +3698,7 @@ export class Session2 extends HeyApiClient {
       }
       permission?: PermissionRuleset
       time?: {
-        archived?: number
+        archived?: number | null
       }
     },
     options?: Options<never, ThrowOnError>,
@@ -6807,6 +6957,11 @@ export class OpencodeClient extends HeyApiClient {
   private _provider?: Provider
   get provider(): Provider {
     return (this._provider ??= new Provider({ client: this.client }))
+  }
+
+  private _rules?: Rules
+  get rules(): Rules {
+    return (this._rules ??= new Rules({ client: this.client }))
   }
 
   private _session?: Session2
