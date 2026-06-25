@@ -54,15 +54,6 @@ if exist "packages\desktop\node_modules\electron\install.js" if not exist "packa
   )
 )
 
-if not defined MODELS_DEV_API_JSON if exist "packages\opencode\test\tool\fixtures\models-api.json" (
-  set "MODELS_DEV_API_JSON=%CD%\packages\opencode\test\tool\fixtures\models-api.json"
-)
-if not defined OPENCODE_MODELS_PATH if exist "packages\opencode\test\tool\fixtures\models-api.json" (
-  set "OPENCODE_MODELS_PATH=%CD%\packages\opencode\test\tool\fixtures\models-api.json"
-)
-if not defined OPENCODE_DISABLE_MODELS_FETCH (
-  set "OPENCODE_DISABLE_MODELS_FETCH=1"
-)
 if not defined OPENCODE_CHANNEL (
   set "OPENCODE_CHANNEL=dev"
 )
